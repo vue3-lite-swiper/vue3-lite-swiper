@@ -8,11 +8,13 @@
     >
       <!-- Strip -->
       <div
-        class="flex cursor-grab gap-5 active:cursor-grabbing"
+        class="flex cursor-grab gap-5 px-5 select-none active:cursor-grabbing"
         ref="strip"
         :style="{
-          transform: `translateX(${-1 * xDelta}px)`,
-          transition: isDragging ? 'none' : 'transform 75ms ease-out',
+          transform: `translateX(${-xDelta}px)`,
+          transition: isDragging
+            ? 'none'
+            : 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
         }"
         @mousedown="startDragging"
       >
@@ -35,8 +37,10 @@ import { ref, useTemplateRef } from "vue";
 
 const xDelta = ref(0);
 const num = ref(12);
-const slidesPerSwipe = ref(4);
+const slidesPerSwipe = ref(1);
 const isDragging = ref(false);
+const firstSlideIndex = ref(0);
+
 const swiperRef = useTemplateRef("swiper");
 const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
@@ -60,27 +64,79 @@ const handleDrag = (e: MouseEvent) => {
 };
 
 const stopDragging = () => {
-  // signs are inverted which causes some confusion
   const swiperViewRect = swiperRef.value?.getBoundingClientRect();
 
-  const SLIDE_STEP =
-    (slidesRef.value?.[1]?.getBoundingClientRect().x ?? 0) -
-    (slidesRef.value?.[0]?.getBoundingClientRect().x ?? 0);
+  const firstSlideRect =
+    slidesRef.value?.[firstSlideIndex.value]?.getBoundingClientRect();
+  const targetSlideRect =
+    slidesRef.value?.[
+      firstSlideIndex.value + slidesPerSwipe.value
+    ]?.getBoundingClientRect();
+
+  if (!firstSlideRect || !targetSlideRect) {
+    console.warn(
+      "slides per swipe exceeds number of slides",
+      firstSlideIndex.value + slidesPerSwipe.value,
+    );
+
+    xDelta.value = 0;
+
+    isDragging.value = false;
+
+    document.onmouseup = null;
+    document.removeEventListener("mousemove", handleDrag);
+
+    return;
+  }
+
+  const SLIDE_STEP = targetSlideRect.x - firstSlideRect.x;
 
   if (!isDragging.value) return;
   isDragging.value = false;
 
   const snapPosition = Math.round(xDelta.value / SLIDE_STEP) * SLIDE_STEP;
-  const slidesPerView = (swiperViewRect?.width ?? 0) / SLIDE_STEP;
 
-  if (snapPosition < 0 || slidesPerView > num.value) {
+  const stripRect = stripRef.value?.getBoundingClientRect();
+  const maxScroll = (stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0);
+
+  // avoid overflowing min
+  if (snapPosition < 0 || maxScroll < 0) {
     xDelta.value = 0;
-  } else if (snapPosition > SLIDE_STEP * (num.value - slidesPerView)) {
-    xDelta.value = SLIDE_STEP * (num.value - slidesPerView);
-  } else {
+    console.log("too small");
+  }
+  // avoid over flowing max
+  else if (snapPosition >= maxScroll) {
+    xDelta.value = maxScroll;
+    console.log("too large");
+  }
+  // snap to next or previous slide
+  else if (
+    (snapPosition / SLIDE_STEP) * slidesPerSwipe.value !==
+    firstSlideIndex.value
+  ) {
+    console.log(
+      "snap ",
+      firstSlideIndex.value,
+      "to: ",
+      (snapPosition / SLIDE_STEP) * slidesPerSwipe.value,
+    );
+
+    firstSlideIndex.value = (snapPosition / SLIDE_STEP) * slidesPerSwipe.value;
+
+    xDelta.value = snapPosition;
+  }
+  // snap back into place
+  else {
+    console.log(
+      "snap back",
+      firstSlideIndex.value,
+      (snapPosition / SLIDE_STEP) * slidesPerSwipe.value,
+    );
+
     xDelta.value = snapPosition;
   }
 
   document.onmouseup = null;
+  document.removeEventListener("mousemove", handleDrag);
 };
 </script>
