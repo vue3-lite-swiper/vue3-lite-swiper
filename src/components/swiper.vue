@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, useTemplateRef } from "vue";
+import { computed, ref, useTemplateRef } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -69,77 +69,76 @@ const handleDrag = (e: MouseEvent) => {
 
 const stopDragging = () => {
   const swiperViewRect = swiperRef.value?.getBoundingClientRect();
+  const slidesRects = slidesRef.value?.map((slide) =>
+    slide.getBoundingClientRect(),
+  );
 
-  const firstSlideRect =
-    slidesRef.value?.[firstSlideIndex]?.getBoundingClientRect();
-  const targetSlideRect =
-    slidesRef.value?.[
-      firstSlideIndex + props.slidesPerSwipe
-    ]?.getBoundingClientRect();
-
-  if (!firstSlideRect || !targetSlideRect) {
-    console.warn(
-      "slides per swipe exceeds number of slides",
-      firstSlideIndex + props.slidesPerSwipe,
-    );
-
+  if (!slidesRects?.[0]) {
     xPos.value = 0;
-
     isDragging.value = false;
-
     document.onmouseup = null;
     document.removeEventListener("mousemove", handleDrag);
-
     return;
   }
 
-  const SLIDE_STEP = targetSlideRect.x - firstSlideRect.x;
-
-  if (!isDragging.value) return;
-  isDragging.value = false;
-
-  const snapPosition = Math.round(xPos.value / SLIDE_STEP) * SLIDE_STEP;
-
+  // Compute absolute left positions of each slide relative to the strip's start
+  // Since getBoundingClientRect() is relative to viewport, we need a common reference.
+  // We'll use the first slide's x as origin (or strip's x if available)
   const stripRect = stripRef.value?.getBoundingClientRect();
-  const maxScroll = (stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0);
+  const stripLeft = stripRect?.x ?? slidesRects[0].x; // fallback to first slide
 
-  // avoid overflowing min
-  if (snapPosition < 0 || maxScroll < 0) {
-    xPos.value = 0;
-    console.log("too small");
+  // Build array of actual scroll offsets where each slide starts
+  const slideScrollOffsets = slidesRects.map((rect) => rect.x - stripLeft);
+
+  // Determine valid snap positions: every `slidesPerSwipe`-th slide
+  const snapPositions: number[] = [];
+  for (let i = 0; i < slideScrollOffsets.length; i += props.slidesPerSwipe) {
+    const pos = slideScrollOffsets[i];
+    if (pos) snapPositions.push(pos);
   }
-  // avoid over flowing max
-  else if (snapPosition >= maxScroll) {
-    xPos.value = maxScroll;
-    console.log("too large");
+
+  console.log(snapPositions);
+
+  // Also allow snapping to the end if needed (optional but safe)
+  const maxScroll = Math.max(
+    0,
+    (stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0),
+  );
+
+  const lastPos = snapPositions[snapPositions.length - 1];
+  if (snapPositions.length === 0 || (lastPos && lastPos < maxScroll)) {
+    // Ensure we can snap to the very end if content overflows
+    snapPositions.push(maxScroll);
   }
-  // snap to next or previous slide
-  else if (
-    (snapPosition / SLIDE_STEP) * props.slidesPerSwipe !==
-    firstSlideIndex
+
+  // Find the closest snap position to current xPos
+  let closestSnap = 0;
+  let minDistance = Infinity;
+  for (const pos of snapPositions) {
+    const dist = Math.abs(pos - xPos.value);
+    if (dist < minDistance) {
+      minDistance = dist;
+      closestSnap = pos;
+    }
+  }
+
+  // Clamp to valid range [0, maxScroll]
+  closestSnap = Math.min(maxScroll, Math.max(0, closestSnap));
+
+  // Update state
+  xPos.value = closestSnap;
+
+  // Optional: update firstSlideIndex based on snapped position
+  // Find which group we snapped to
+  const snappedGroupIndex = snapPositions.indexOf(closestSnap);
+  if (
+    snappedGroupIndex !== -1 &&
+    snappedGroupIndex * props.slidesPerSwipe < slidesRects.length
   ) {
-    console.log(
-      "snap ",
-      firstSlideIndex,
-      "to: ",
-      (snapPosition / SLIDE_STEP) * props.slidesPerSwipe,
-    );
-
-    firstSlideIndex = (snapPosition / SLIDE_STEP) * props.slidesPerSwipe;
-
-    xPos.value = snapPosition;
-  }
-  // snap back into place
-  else {
-    console.log(
-      "snap back",
-      firstSlideIndex,
-      (snapPosition / SLIDE_STEP) * props.slidesPerSwipe,
-    );
-
-    xPos.value = snapPosition;
+    firstSlideIndex = snappedGroupIndex * props.slidesPerSwipe;
   }
 
+  isDragging.value = false;
   document.onmouseup = null;
   document.removeEventListener("mousemove", handleDrag);
 };
