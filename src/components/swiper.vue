@@ -1,8 +1,6 @@
 <template>
-  <div
-    class="flex h-52 w-[450px] overflow-hidden bg-blue-500 py-10"
-    ref="swiper"
-  >
+  <!-- Swiper -->
+  <div class="flex overflow-hidden" ref="swiper">
     <!-- Strip -->
     <div
       class="flex cursor-grab gap-5 select-none active:cursor-grabbing"
@@ -30,7 +28,7 @@
 <script setup lang="ts">
 import { ref, useTemplateRef } from "vue";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     slidesNum: number;
     slidesPerSwipe?: number;
@@ -41,15 +39,15 @@ withDefaults(
 );
 
 const xPos = ref(0);
-const slidesPerSwipe = ref(1);
 const isDragging = ref(false);
-const firstSlideIndex = ref(0);
 
 const swiperRef = useTemplateRef("swiper");
 const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
 
 let lastMouseX = 0;
+let firstSlideIndex = 0;
+let isForward = true;
 
 // Generalize slides count and slide width
 
@@ -62,7 +60,9 @@ const startDragging = (e: MouseEvent) => {
 
 const handleDrag = (e: MouseEvent) => {
   if (isDragging.value) {
-    xPos.value += lastMouseX - e.clientX;
+    const delta = lastMouseX - e.clientX;
+    isForward = delta > 0;
+    xPos.value += delta;
     lastMouseX = e.clientX;
   }
 };
@@ -71,16 +71,16 @@ const stopDragging = () => {
   const swiperViewRect = swiperRef.value?.getBoundingClientRect();
 
   const firstSlideRect =
-    slidesRef.value?.[firstSlideIndex.value]?.getBoundingClientRect();
+    slidesRef.value?.[firstSlideIndex]?.getBoundingClientRect();
   const targetSlideRect =
     slidesRef.value?.[
-      firstSlideIndex.value + slidesPerSwipe.value
+      firstSlideIndex + props.slidesPerSwipe
     ]?.getBoundingClientRect();
 
   if (!firstSlideRect || !targetSlideRect) {
     console.warn(
       "slides per swipe exceeds number of slides",
-      firstSlideIndex.value + slidesPerSwipe.value,
+      firstSlideIndex + props.slidesPerSwipe,
     );
 
     xPos.value = 0;
@@ -94,8 +94,6 @@ const stopDragging = () => {
   }
 
   const SLIDE_STEP = targetSlideRect.x - firstSlideRect.x;
-
-  console.log(SLIDE_STEP);
 
   if (!isDragging.value) return;
   isDragging.value = false;
@@ -117,17 +115,17 @@ const stopDragging = () => {
   }
   // snap to next or previous slide
   else if (
-    (snapPosition / SLIDE_STEP) * slidesPerSwipe.value !==
-    firstSlideIndex.value
+    (snapPosition / SLIDE_STEP) * props.slidesPerSwipe !==
+    firstSlideIndex
   ) {
     console.log(
       "snap ",
-      firstSlideIndex.value,
+      firstSlideIndex,
       "to: ",
-      (snapPosition / SLIDE_STEP) * slidesPerSwipe.value,
+      (snapPosition / SLIDE_STEP) * props.slidesPerSwipe,
     );
 
-    firstSlideIndex.value = (snapPosition / SLIDE_STEP) * slidesPerSwipe.value;
+    firstSlideIndex = (snapPosition / SLIDE_STEP) * props.slidesPerSwipe;
 
     xPos.value = snapPosition;
   }
@@ -135,8 +133,8 @@ const stopDragging = () => {
   else {
     console.log(
       "snap back",
-      firstSlideIndex.value,
-      (snapPosition / SLIDE_STEP) * slidesPerSwipe.value,
+      firstSlideIndex,
+      (snapPosition / SLIDE_STEP) * props.slidesPerSwipe,
     );
 
     xPos.value = snapPosition;
