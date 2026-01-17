@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+import { getClosestSnapPosition, getSnapPositions } from "~/utils/snap";
 import { computed, ref, useTemplateRef } from "vue";
 
 const props = withDefaults(
@@ -46,10 +47,6 @@ const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
 
 let lastMouseX = 0;
-let firstSlideIndex = 0;
-let isForward = true;
-
-// Generalize slides count and slide width
 
 const startDragging = (e: MouseEvent) => {
   isDragging.value = true;
@@ -61,19 +58,13 @@ const startDragging = (e: MouseEvent) => {
 const handleDrag = (e: MouseEvent) => {
   if (isDragging.value) {
     const delta = lastMouseX - e.clientX;
-    isForward = delta > 0;
     xPos.value += delta;
     lastMouseX = e.clientX;
   }
 };
 
 const stopDragging = () => {
-  const swiperViewRect = swiperRef.value?.getBoundingClientRect();
-  const slidesRects = slidesRef.value?.map((slide) =>
-    slide.getBoundingClientRect(),
-  );
-
-  if (!slidesRects?.[0]) {
+  if (!slidesRef.value?.[0]) {
     xPos.value = 0;
     isDragging.value = false;
     document.onmouseup = null;
@@ -81,65 +72,27 @@ const stopDragging = () => {
     return;
   }
 
-  // Compute absolute left positions of each slide relative to the strip's start
-  // Since getBoundingClientRect() is relative to viewport, we need a common reference.
-  // We'll use the first slide's x as origin (or strip's x if available)
-  const stripRect = stripRef.value?.getBoundingClientRect();
-  const stripLeft = stripRect?.x ?? slidesRects[0].x; // fallback to first slide
-
-  // Build array of actual scroll offsets where each slide starts
-  const slideScrollOffsets = slidesRects.map((rect) => rect.x - stripLeft);
-
-  // Determine valid snap positions: every `slidesPerSwipe`-th slide
-  const snapPositions: number[] = [];
-  for (let i = 0; i < slideScrollOffsets.length; i += props.slidesPerSwipe) {
-    const pos = slideScrollOffsets[i];
-    if (pos) snapPositions.push(pos);
-  }
-
-  console.log(snapPositions);
-
-  // Also allow snapping to the end if needed (optional but safe)
-  const maxScroll = Math.max(
-    0,
-    (stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0),
+  const { snapPositions, maxPos } = getSnapPositions(
+    { swiperRef, slidesRef, stripRef },
+    props.slidesPerSwipe,
   );
 
-  const lastPos = snapPositions[snapPositions.length - 1];
-  if (snapPositions.length === 0 || (lastPos && lastPos < maxScroll)) {
-    // Ensure we can snap to the very end if content overflows
-    snapPositions.push(maxScroll);
-  }
-
-  // Find the closest snap position to current xPos
-  let closestSnap = 0;
-  let minDistance = Infinity;
-  for (const pos of snapPositions) {
-    const dist = Math.abs(pos - xPos.value);
-    if (dist < minDistance) {
-      minDistance = dist;
-      closestSnap = pos;
-    }
-  }
-
-  // Clamp to valid range [0, maxScroll]
-  closestSnap = Math.min(maxScroll, Math.max(0, closestSnap));
-
-  // Update state
-  xPos.value = closestSnap;
-
-  // Optional: update firstSlideIndex based on snapped position
-  // Find which group we snapped to
-  const snappedGroupIndex = snapPositions.indexOf(closestSnap);
-  if (
-    snappedGroupIndex !== -1 &&
-    snappedGroupIndex * props.slidesPerSwipe < slidesRects.length
-  ) {
-    firstSlideIndex = snappedGroupIndex * props.slidesPerSwipe;
-  }
+  xPos.value = getClosestSnapPosition(xPos.value, maxPos, snapPositions);
 
   isDragging.value = false;
   document.onmouseup = null;
   document.removeEventListener("mousemove", handleDrag);
 };
+
+/**
+ * We can create a common utility function that get the closes snap position to by current delta
+ * and use it for both mouse swipe and programmatic swipe
+ *
+ * FIXME: the only thing i hate about this is that it has O(n) complexity because we calculate all possible snap positions on every
+ * swipe this won't scale properly.
+ *
+ * FIXME: I weird bug appeared when i increase the number of slides per swipe the reach that end i can't go back to 0 (first) slide
+ *
+ *
+ */
 </script>
