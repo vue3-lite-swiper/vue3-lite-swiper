@@ -27,19 +27,19 @@ export function getSnapPositions(
   // Since getBoundingClientRect() is relative to viewport, we need a common reference.
   // We'll use the first slide's x as origin (or strip's x if available)
 
-  const stripLeft = slidesRef.value[0]?.getBoundingClientRect().x; // fallback to first slide
+  const stripLeft = slidesRef.value[0]?.getBoundingClientRect().x ?? 0;
 
   const swiperViewRect = swiperRef.value.getBoundingClientRect();
   const stripRect = stripRef.value.getBoundingClientRect();
 
   // Build array of actual scroll offsets where each slide starts
-  const slideScrollOffsets = slidesRef.value.map(
-    (slide) => slide.getBoundingClientRect().x - (stripLeft ?? 0),
+  const slideScrollOffsets = slidesRef.value.map((slide) =>
+    Math.round(slide.getBoundingClientRect().x - stripLeft),
   );
 
   // Determine valid snap positions: every `slidesPerSwipe`-th slide
   const snapPositions: number[] = [0];
-  for (let i = 0; i < slideScrollOffsets.length; i += slidesPerSwipe) {
+  for (let i = 0; i < slideScrollOffsets.length - 1; i += slidesPerSwipe) {
     const pos = slideScrollOffsets[i];
     if (pos) snapPositions.push(pos);
   }
@@ -47,14 +47,10 @@ export function getSnapPositions(
   // Also allow snapping to the end if needed (optional but safe)
   const maxPos = Math.max(
     0,
-    (stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0),
+    Math.round((stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0)),
   );
 
-  const lastPos = snapPositions[snapPositions.length - 1];
-  if (snapPositions.length === 0 || (lastPos && lastPos < maxPos)) {
-    // Ensure we can snap to the very end if content overflows
-    snapPositions.push(maxPos);
-  }
+  snapPositions.push(maxPos);
 
   return {
     snapPositions,

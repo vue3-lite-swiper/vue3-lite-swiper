@@ -84,6 +84,43 @@ const stopDragging = () => {
   document.removeEventListener("mousemove", handleDrag);
 };
 
+const next = () => {
+  const { snapPositions } = getSnapPositions(
+    { swiperRef, slidesRef, stripRef },
+    props.slidesPerSwipe,
+  );
+
+  const index = snapPositions.findIndex((item) => item === xPos.value);
+
+  if (index === -1) return;
+
+  const nextPos = snapPositions?.[index + 1];
+
+  if (nextPos) {
+    xPos.value = nextPos;
+  }
+};
+
+const previous = () => {
+  const { snapPositions } = getSnapPositions(
+    { swiperRef, slidesRef, stripRef },
+    props.slidesPerSwipe,
+  );
+
+  const index = snapPositions.findIndex((item) => item === xPos.value);
+
+  const prevPos = snapPositions?.[index - 1];
+
+  if (prevPos !== undefined) {
+    xPos.value = prevPos;
+  }
+};
+
+defineExpose({
+  next,
+  previous,
+});
+
 /**
  * We can create a common utility function that get the closes snap position to by current delta
  * and use it for both mouse swipe and programmatic swipe
@@ -93,6 +130,7 @@ const stopDragging = () => {
  *
  * FIXME: I weird bug appeared when i increase the number of slides per swipe the reach that end i can't go back to 0 (first) slide
  *
- *
+ * Number of possible swipes = slides/slides_per_swipe (useful when creating pagination component)
+ * Create next and previous functions to navigate the swiper programmatically
  */
 </script>
