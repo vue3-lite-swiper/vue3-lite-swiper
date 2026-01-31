@@ -39,16 +39,18 @@ export function getSnapPositions(
 
   // Determine valid snap positions: every `slidesPerSwipe`-th slide
   const snapPositions: number[] = [0];
-  for (let i = 0; i < slideScrollOffsets.length - 1; i += slidesPerSwipe) {
-    const pos = slideScrollOffsets[i];
-    if (pos) snapPositions.push(pos);
-  }
-
   // Also allow snapping to the end if needed (optional but safe)
   const maxPos = Math.max(
     0,
     Math.round((stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0)),
   );
+
+  for (let i = 0; i < slideScrollOffsets.length - 1; i += slidesPerSwipe) {
+    const pos = slideScrollOffsets[i];
+    if (pos && pos < maxPos) {
+      snapPositions.push(pos);
+    }
+  }
 
   snapPositions.push(maxPos);
 

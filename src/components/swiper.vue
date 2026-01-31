@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { getClosestSnapPosition, getSnapPositions } from "~/utils/snap";
-import { computed, ref, useTemplateRef } from "vue";
+import { computed, ref, useTemplateRef, watchEffect } from "vue";
 
 const props = withDefaults(
   defineProps<{
@@ -47,6 +47,19 @@ const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
 
 let lastMouseX = 0;
+
+const swiperCalcs = computed(() =>
+  getSnapPositions({ swiperRef, slidesRef, stripRef }, props.slidesPerSwipe),
+);
+
+const pagination = computed(() => {
+  const { snapPositions } = swiperCalcs.value;
+
+  return {
+    current: snapPositions.findIndex((item) => item === xPos.value),
+    total: snapPositions.length,
+  };
+});
 
 const startDragging = (e: MouseEvent) => {
   isDragging.value = true;
@@ -72,10 +85,7 @@ const stopDragging = () => {
     return;
   }
 
-  const { snapPositions, maxPos } = getSnapPositions(
-    { swiperRef, slidesRef, stripRef },
-    props.slidesPerSwipe,
-  );
+  const { maxPos, snapPositions } = swiperCalcs.value;
 
   xPos.value = getClosestSnapPosition(xPos.value, maxPos, snapPositions);
 
@@ -85,40 +95,41 @@ const stopDragging = () => {
 };
 
 const next = () => {
-  const { snapPositions } = getSnapPositions(
-    { swiperRef, slidesRef, stripRef },
-    props.slidesPerSwipe,
-  );
+  const { snapPositions } = swiperCalcs.value;
 
-  const index = snapPositions.findIndex((item) => item === xPos.value);
+  const nextPos = snapPositions?.[pagination.value.current + 1];
 
-  if (index === -1) return;
-
-  const nextPos = snapPositions?.[index + 1];
-
-  if (nextPos) {
+  if (nextPos !== undefined) {
     xPos.value = nextPos;
   }
 };
 
 const previous = () => {
-  const { snapPositions } = getSnapPositions(
-    { swiperRef, slidesRef, stripRef },
-    props.slidesPerSwipe,
-  );
+  const { snapPositions } = swiperCalcs.value;
 
-  const index = snapPositions.findIndex((item) => item === xPos.value);
-
-  const prevPos = snapPositions?.[index - 1];
+  const prevPos = snapPositions?.[pagination.value.current - 1];
 
   if (prevPos !== undefined) {
     xPos.value = prevPos;
   }
 };
 
+const goToIndex = (index: number) => {
+  const { snapPositions } = swiperCalcs.value;
+
+  const pos = snapPositions?.[index];
+  if (pos) {
+    xPos.value = pos;
+  } else {
+    throw new Error(`index [${index}] is out of bound`);
+  }
+};
+
 defineExpose({
+  pagination,
   next,
   previous,
+  goToIndex,
 });
 
 /**
