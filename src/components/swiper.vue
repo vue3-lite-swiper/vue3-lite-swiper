@@ -27,12 +27,13 @@
 
 <script setup lang="ts">
 import { getClosestSnapPosition, getSnapPositions } from "~/utils/snap";
-import { computed, ref, useTemplateRef, watchEffect } from "vue";
+import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 
 const props = withDefaults(
   defineProps<{
     slidesNum: number;
     slidesPerSwipe?: number;
+    autoPlay?: boolean;
   }>(),
   {
     slidesPerSwipe: 1,
@@ -47,6 +48,7 @@ const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
 
 let lastMouseX = 0;
+let autoPlayIntervalId: number;
 
 const swiperCalcs = computed(() =>
   getSnapPositions({ swiperRef, slidesRef, stripRef }, props.slidesPerSwipe),
@@ -118,12 +120,43 @@ const goToIndex = (index: number) => {
   const { snapPositions } = swiperCalcs.value;
 
   const pos = snapPositions?.[index];
-  if (pos) {
+  if (pos !== undefined) {
     xPos.value = pos;
   } else {
     throw new Error(`index [${index}] is out of bound`);
   }
 };
+
+const startAutoPlay = () => {
+  autoPlayIntervalId = setInterval(() => {
+    if (pagination.value.current === pagination.value.total - 1) {
+      goToIndex(0);
+    } else {
+      next();
+    }
+  }, 500);
+};
+
+const stoptAutoPlay = () => {
+  clearInterval(autoPlayIntervalId);
+};
+
+watch(
+  () => props.autoPlay,
+  (newValue) => {
+    if (newValue) {
+      startAutoPlay();
+    } else {
+      stoptAutoPlay();
+    }
+  },
+);
+
+onMounted(() => {
+  if (props.autoPlay) {
+    startAutoPlay();
+  }
+});
 
 defineExpose({
   pagination,
@@ -133,15 +166,12 @@ defineExpose({
 });
 
 /**
- * We can create a common utility function that get the closes snap position to by current delta
- * and use it for both mouse swipe and programmatic swipe
- *
- * FIXME: the only thing i hate about this is that it has O(n) complexity because we calculate all possible snap positions on every
- * swipe this won't scale properly.
- *
- * FIXME: I weird bug appeared when i increase the number of slides per swipe the reach that end i can't go back to 0 (first) slide
- *
  * Number of possible swipes = slides/slides_per_swipe (useful when creating pagination component)
  * Create next and previous functions to navigate the swiper programmatically
+ *
+ * if the slides reached the end what do i do?
+ * loop we need loop option i imaging it will be unshift then shift and adjust current index
+ * loop back until you reach the start
+ * reset go back to start then continue auto play
  */
 </script>

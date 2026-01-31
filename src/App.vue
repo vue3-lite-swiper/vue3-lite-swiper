@@ -1,9 +1,16 @@
 <template>
   <div class="flex flex-col items-center gap-5">
     <h1 class="text-6xl">Vue3 Swiper Playground</h1>
+
+    <label class="flex items-center gap-2">
+      <input type="checkbox" v-model="autoPlayEnabled" />
+      <span>Auto Play</span>
+    </label>
+
     <Swiper
       class="h-52 w-[720px] bg-blue-500 py-10"
       ref="mySwiper"
+      :auto-play="autoPlayEnabled"
       :slides-num="10"
       :slides-per-swipe="1"
     >
@@ -20,8 +27,10 @@
       </template>
     </Swiper>
 
-    <button @click="mySwiperRef?.next()">next</button>
-    <button @click="mySwiperRef?.previous()">previous</button>
+    <div class="flex gap-24">
+      <button @click="mySwiperRef?.previous()">Previous</button>
+      <button @click="mySwiperRef?.next()">Next</button>
+    </div>
 
     <div v-if="mySwiperRef" class="flex gap-2">
       <div
@@ -39,15 +48,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useTemplateRef, watchEffect } from "vue";
+import { ref, computed, useTemplateRef } from "vue";
 import Swiper from "./components/swiper.vue";
 
+const autoPlayEnabled = ref(true);
 const mySwiperRef = useTemplateRef("mySwiper");
 
-const widths = computed(() =>
-  Array.from({ length: 10 }, () => {
-    // return 50 + Math.random() * 350;
-    return 200;
-  }),
-);
+const widths = computed(() => Array.from({ length: 10 }, () => 200));
 </script>
