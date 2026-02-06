@@ -12,26 +12,28 @@
           : 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
       }"
       @mousedown="startDragging"
+      @touchstart="startDragging"
     >
       <!-- Slides -->
       <div
-        v-for="index in slidesNum"
+        v-for="(item, index) in slides"
         class="flex shrink-0 select-none"
         ref="slides"
       >
-        <slot :index />
+        <slot :item :index />
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 import { getClosestSnapPosition, getSnapPositions } from "~/utils/snap";
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
+import { getClientX } from "~/utils/client";
 
 const props = withDefaults(
   defineProps<{
-    slidesNum: number;
+    slides: T[];
     slidesPerSwipe?: number;
     autoPlay?: boolean;
   }>(),
@@ -63,18 +65,27 @@ const pagination = computed(() => {
   };
 });
 
-const startDragging = (e: MouseEvent) => {
+const startDragging = (e: MouseEvent | TouchEvent) => {
   isDragging.value = true;
-  lastMouseX = e.clientX;
-  document.addEventListener("mousemove", handleDrag);
-  document.onmouseup = stopDragging;
+  lastMouseX = getClientX(e) ?? 0;
+
+  if (e instanceof MouseEvent) {
+    document.addEventListener("mousemove", handleDrag);
+    document.addEventListener("mouseup", stopDragging);
+  } else {
+    document.addEventListener("touchmove", handleDrag);
+    document.addEventListener("touchend", stopDragging);
+    document.addEventListener("touchcancel", stopDragging);
+  }
 };
 
-const handleDrag = (e: MouseEvent) => {
+const handleDrag = (e: MouseEvent | TouchEvent) => {
   if (isDragging.value) {
-    const delta = lastMouseX - e.clientX;
+    const currentMouseX = getClientX(e) ?? 0;
+
+    const delta = lastMouseX - currentMouseX;
     xPos.value += delta;
-    lastMouseX = e.clientX;
+    lastMouseX = currentMouseX;
   }
 };
 
@@ -82,8 +93,7 @@ const stopDragging = () => {
   if (!slidesRef.value?.[0]) {
     xPos.value = 0;
     isDragging.value = false;
-    document.onmouseup = null;
-    document.removeEventListener("mousemove", handleDrag);
+    removeAllEventListeners();
     return;
   }
 
@@ -92,8 +102,15 @@ const stopDragging = () => {
   xPos.value = getClosestSnapPosition(xPos.value, maxPos, snapPositions);
 
   isDragging.value = false;
-  document.onmouseup = null;
+  removeAllEventListeners();
+};
+
+const removeAllEventListeners = () => {
   document.removeEventListener("mousemove", handleDrag);
+  document.removeEventListener("mouseup", stopDragging);
+  document.removeEventListener("touchmove", handleDrag);
+  document.removeEventListener("touchend", stopDragging);
+  document.removeEventListener("touchcancel", stopDragging);
 };
 
 const next = () => {
