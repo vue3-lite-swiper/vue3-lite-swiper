@@ -3,13 +3,19 @@
   <div class="flex overflow-hidden" ref="swiper">
     <!-- Strip -->
     <div
-      class="flex cursor-grab gap-5 select-none active:cursor-grabbing"
       ref="strip"
+      :class="[
+        'cursor-grab gap-5 select-none active:cursor-grabbing',
+        mode === 'fixed' ? 'grid grid-flow-col' : 'flex',
+      ]"
       :style="{
         transform: `translateX(${-xPos}px)`,
         transition: isDragging
           ? 'none'
           : 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
+        ...(mode === 'fixed' && slideWidth !== undefined
+          ? { gridAutoColumns: `${slideWidth}px` }
+          : {}),
       }"
       @mousedown="startDragging"
       @touchstart="startDragging"
@@ -27,7 +33,11 @@
 </template>
 
 <script setup lang="ts" generic="T">
-import { getClosestSnapPosition, getSnapPositions } from "~/utils/snap";
+import {
+  getClosestSnapPosition,
+  getFixedSnapPositions,
+  getSnapPositions,
+} from "~/utils/snap";
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import { getClientX } from "~/utils/client";
 
@@ -36,9 +46,12 @@ const props = withDefaults(
     slides: T[];
     slidesPerSwipe?: number;
     autoPlay?: boolean;
+    mode?: "fixed" | "auto";
+    slideWidth?: number;
   }>(),
   {
     slidesPerSwipe: 1,
+    mode: "fixed",
   },
 );
 
@@ -52,9 +65,24 @@ const stripRef = useTemplateRef("strip");
 let lastMouseX = 0;
 let autoPlayIntervalId: number;
 
-const swiperCalcs = computed(() =>
-  getSnapPositions({ swiperRef, slidesRef, stripRef }, props.slidesPerSwipe),
-);
+const swiperCalcs = computed(() => {
+  if (props.mode === "fixed") {
+    if (props.slideWidth === undefined) {
+      console.error('Swiper: `slideWidth` is required when `mode` is "fixed".');
+      return { snapPositions: [0], maxPos: 0 };
+    }
+    return getFixedSnapPositions(
+      { swiperRef, stripRef },
+      props.slides.length,
+      props.slideWidth,
+      props.slidesPerSwipe,
+    );
+  }
+  return getSnapPositions(
+    { swiperRef, slidesRef, stripRef },
+    props.slidesPerSwipe,
+  );
+});
 
 const pagination = computed(() => {
   const { snapPositions } = swiperCalcs.value;

@@ -8,6 +8,41 @@ type SwiperRefs = {
   stripRef: Readonly<ShallowRef<HTMLDivElement | null, HTMLDivElement | null>>;
 };
 
+type FixedSwiperRefs = {
+  swiperRef: Readonly<ShallowRef<HTMLDivElement | null, HTMLDivElement | null>>;
+  stripRef: Readonly<ShallowRef<HTMLDivElement | null, HTMLDivElement | null>>;
+};
+
+export function getFixedSnapPositions(
+  swiperRefs: FixedSwiperRefs,
+  slideCount: number,
+  slideWidth: number,
+  slidesPerSwipe: number,
+) {
+  const { swiperRef, stripRef } = swiperRefs;
+
+  if (!swiperRef.value || !stripRef.value || slideCount === 0) {
+    return { snapPositions: [0], maxPos: 0 };
+  }
+
+  const swiperWidth = swiperRef.value.getBoundingClientRect().width;
+  const gap = parseFloat(getComputedStyle(stripRef.value).columnGap) || 0;
+
+  const stripWidth =
+    slideCount * slideWidth + Math.max(0, slideCount - 1) * gap;
+  const maxPos = Math.max(0, Math.round(stripWidth - swiperWidth));
+  const stride = slideWidth + gap;
+
+  const snapPositions: number[] = [0];
+  for (let i = slidesPerSwipe; i < slideCount; i += slidesPerSwipe) {
+    const pos = Math.round(i * stride);
+    if (pos < maxPos) snapPositions.push(pos);
+  }
+  snapPositions.push(maxPos);
+
+  return { snapPositions, maxPos };
+}
+
 export function getSnapPositions(
   swiperRefs: SwiperRefs,
   slidesPerSwipe: number,

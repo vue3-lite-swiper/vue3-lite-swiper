@@ -14,6 +14,7 @@
       :slides="widths"
       :slides-num="10"
       :slides-per-swipe="1"
+      :slide-width="200"
     >
       <template #default="{ index }">
         <div
