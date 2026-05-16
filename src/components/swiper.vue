@@ -22,7 +22,7 @@
     >
       <!-- Slides -->
       <div
-        v-for="(item, index) in slides"
+        v-for="(item, index) in displaySlides"
         class="flex shrink-0 select-none"
         ref="slides"
       >
@@ -38,7 +38,7 @@ import {
   getFixedSnapPositions,
   getSnapPositions,
 } from "~/utils/snap";
-import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import { getClientX } from "~/utils/client";
 
 const props = withDefaults(
@@ -46,6 +46,7 @@ const props = withDefaults(
     slides: T[];
     slidesPerSwipe?: number;
     autoPlay?: boolean;
+    loop?: boolean;
     mode?: "fixed" | "auto";
     slideWidth?: number;
   }>(),
@@ -54,9 +55,27 @@ const props = withDefaults(
     mode: "fixed",
   },
 );
+/**
+ * Number of possible swipes = slides/slides_per_swipe (useful when creating pagination component)
+ * Create next and previous functions to navigate the swiper programmatically
+ *
+ *
+ * support programmatic swipe [v]
+ * looping we need to toggle it off and one using prop [v]
+ * support auto play [v]
+ * looping should be supported in auto mode [v]
+ *
+ * gap 20 should be variable
+ * see if slides are sufficient:
+ *  - if its there is not enough slides for looping then looping should be disabled completely: number of slides < number of slider per view
+ *  - if there is barley enough then some slides will be duplicated to account for insufficient slides: number of slides + 1
+ *
+ */
 
 const xPos = ref(0);
 const isDragging = ref(false);
+const canLoop = ref(false);
+const displaySlides = ref<T[]>([...props.slides]);
 
 const swiperRef = useTemplateRef("swiper");
 const slidesRef = useTemplateRef("slides");
@@ -73,7 +92,7 @@ const swiperCalcs = computed(() => {
     }
     return getFixedSnapPositions(
       { swiperRef, stripRef },
-      props.slides.length,
+      displaySlides.value.length,
       props.slideWidth,
       props.slidesPerSwipe,
     );
@@ -112,6 +131,28 @@ const handleDrag = (e: MouseEvent | TouchEvent) => {
     const currentMouseX = getClientX(e) ?? 0;
 
     const delta = lastMouseX - currentMouseX;
+    if (canLoop.value) {
+      const s = stride();
+      if (xPos.value + delta < 0) {
+        // pop last item
+        const last = displaySlides.value.pop();
+        if (last !== undefined) {
+          // add it to the start of the array
+          displaySlides.value.unshift(last);
+          // adjust x-position to account for the item being prepended
+          xPos.value += s;
+        }
+      } else if (xPos.value + delta > swiperCalcs.value.maxPos) {
+        // shift first item
+        const first = displaySlides.value.shift();
+        if (first !== undefined) {
+          // add it to the end of the array
+          displaySlides.value.push(first);
+          // adjust x-position to account for the item being removed from the start
+          xPos.value -= s;
+        }
+      }
+    }
     xPos.value += delta;
     lastMouseX = currentMouseX;
   }
@@ -141,6 +182,8 @@ const removeAllEventListeners = () => {
   document.removeEventListener("touchcancel", stopDragging);
 };
 
+const stride = () => (props.slideWidth ?? 0) + 20;
+
 const next = () => {
   const { snapPositions } = swiperCalcs.value;
 
@@ -148,7 +191,23 @@ const next = () => {
 
   if (nextPos !== undefined) {
     xPos.value = nextPos;
+    return;
   }
+
+  if (!canLoop.value) return;
+
+  // at the end: rotate first slide to end and rebase xPos one stride back
+  // (transition off via isDragging), then on next tick animate forward
+  const first = displaySlides.value.shift();
+  if (first === undefined) return;
+  displaySlides.value.push(first);
+  isDragging.value = true;
+  xPos.value -= stride();
+  nextTick(() => {
+    stripRef.value?.getBoundingClientRect(); // force reflow
+    isDragging.value = false;
+    xPos.value += stride();
+  });
 };
 
 const previous = () => {
@@ -158,7 +217,21 @@ const previous = () => {
 
   if (prevPos !== undefined) {
     xPos.value = prevPos;
+    return;
   }
+
+  if (!canLoop.value) return;
+
+  const last = displaySlides.value.pop();
+  if (last === undefined) return;
+  displaySlides.value.unshift(last);
+  isDragging.value = true;
+  xPos.value += stride();
+  nextTick(() => {
+    stripRef.value?.getBoundingClientRect();
+    isDragging.value = false;
+    xPos.value -= stride();
+  });
 };
 
 const goToIndex = (index: number) => {
@@ -174,7 +247,10 @@ const goToIndex = (index: number) => {
 
 const startAutoPlay = () => {
   autoPlayIntervalId = setInterval(() => {
-    if (pagination.value.current === pagination.value.total - 1) {
+    if (
+      !canLoop.value &&
+      pagination.value.current === pagination.value.total - 1
+    ) {
       goToIndex(0);
     } else {
       next();
@@ -197,7 +273,41 @@ watch(
   },
 );
 
+const computeSlidesPerView = () => {
+  const swiperWidth = swiperRef.value?.getBoundingClientRect().width ?? 0;
+  if (!swiperWidth) return 1;
+
+  if (props.mode === "fixed" && props.slideWidth) {
+    return Math.floor(swiperWidth / stride());
+  }
+
+  // auto mode: count slides until they fill the viewport
+  const slides = slidesRef.value ?? [];
+  let acc = 0;
+  let count = 0;
+  for (const s of slides) {
+    acc += s.getBoundingClientRect().width + 20;
+    count++;
+    if (acc >= swiperWidth) break;
+  }
+  return count || 1;
+};
+
 onMounted(() => {
+  if (props.loop) {
+    const spv = computeSlidesPerView();
+
+    if (props.slides.length < spv) {
+      // not enough slides to loop visually — keep canLoop false
+    } else if (props.slides.length <= spv + 1) {
+      // barely enough — append spv slides as off-screen buffer for rotation
+      displaySlides.value = [...props.slides, ...props.slides.slice(0, spv)];
+      canLoop.value = true;
+    } else {
+      canLoop.value = true;
+    }
+  }
+
   if (props.autoPlay) {
     startAutoPlay();
   }
@@ -209,14 +319,4 @@ defineExpose({
   previous,
   goToIndex,
 });
-
-/**
- * Number of possible swipes = slides/slides_per_swipe (useful when creating pagination component)
- * Create next and previous functions to navigate the swiper programmatically
- *
- * if the slides reached the end what do i do?
- * loop we need loop option i imaging it will be unshift then shift and adjust current index
- * loop back until you reach the start
- * reset go back to start then continue auto play
- */
 </script>

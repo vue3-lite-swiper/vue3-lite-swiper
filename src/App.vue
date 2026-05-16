@@ -10,21 +10,21 @@
     <Swiper
       class="h-52 w-[720px] bg-blue-500 py-10"
       ref="mySwiper"
+      loop
       :auto-play="autoPlayEnabled"
       :slides="widths"
       :slides-num="10"
       :slides-per-swipe="1"
       :slide-width="200"
     >
-      <template #default="{ index }">
+      <template #default="{ item }">
         <div
           class="flex shrink-0 justify-center rounded bg-pink-200 select-none"
-          ref="slides"
           :style="{
-            width: `${widths[index]}px`,
+            width: `${200}px`,
           }"
         >
-          {{ index }}
+          {{ item }}
         </div>
       </template>
     </Swiper>
@@ -56,5 +56,5 @@ import Swiper from "./components/swiper.vue";
 const autoPlayEnabled = ref(false);
 const mySwiperRef = useTemplateRef("mySwiper");
 
-const widths = computed(() => Array.from({ length: 10 }, () => 200));
+const widths = computed(() => Array.from({ length: 10 }, (_, i) => i));
 </script>
