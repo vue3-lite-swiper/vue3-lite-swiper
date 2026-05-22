@@ -15,13 +15,13 @@
       :slides="widths"
       :slides-num="10"
       :slides-per-swipe="1"
-      :slide-width="200"
+      :mode="'auto'"
     >
       <template #default="{ item }">
         <div
           class="flex shrink-0 justify-center rounded bg-pink-200 select-none"
           :style="{
-            width: `${200}px`,
+            width: `${item.width}px`,
           }"
         >
           {{ item }}
@@ -56,5 +56,10 @@ import Swiper from "./components/swiper.vue";
 const autoPlayEnabled = ref(false);
 const mySwiperRef = useTemplateRef("mySwiper");
 
-const widths = computed(() => Array.from({ length: 10 }, (_, i) => i));
+const widths = computed(() =>
+  Array.from({ length: 10 }, (_, i) => ({
+    key: i,
+    width: Math.floor(Math.random() * 200 + 100),
+  })),
+);
 </script>

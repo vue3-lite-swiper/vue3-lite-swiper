@@ -5,10 +5,11 @@
     <div
       ref="strip"
       :class="[
-        'cursor-grab gap-5 select-none active:cursor-grabbing',
+        'cursor-grab select-none active:cursor-grabbing',
         mode === 'fixed' ? 'grid grid-flow-col' : 'flex',
       ]"
       :style="{
+        gap: `${gap}px`,
         transform: `translateX(${-xPos}px)`,
         transition: isDragging
           ? 'none'
@@ -49,10 +50,12 @@ const props = withDefaults(
     loop?: boolean;
     mode?: "fixed" | "auto";
     slideWidth?: number;
+    gap?: number;
   }>(),
   {
     slidesPerSwipe: 1,
     mode: "fixed",
+    gap: 20,
   },
 );
 /**
@@ -65,7 +68,7 @@ const props = withDefaults(
  * support auto play [v]
  * looping should be supported in auto mode [v]
  *
- * gap 20 should be variable
+ * gap 20 should be variable [v]
  * see if slides are sufficient:
  *  - if its there is not enough slides for looping then looping should be disabled completely: number of slides < number of slider per view
  *  - if there is barley enough then some slides will be duplicated to account for insufficient slides: number of slides + 1
@@ -132,10 +135,13 @@ const handleDrag = (e: MouseEvent | TouchEvent) => {
 
     const delta = lastMouseX - currentMouseX;
     if (canLoop.value) {
-      const s = stride();
       if (xPos.value + delta < 0) {
         // pop last item
+        const s = lastSlideStride();
         const last = displaySlides.value.pop();
+
+        console.log(s);
+
         if (last !== undefined) {
           // add it to the start of the array
           displaySlides.value.unshift(last);
@@ -144,6 +150,7 @@ const handleDrag = (e: MouseEvent | TouchEvent) => {
         }
       } else if (xPos.value + delta > swiperCalcs.value.maxPos) {
         // shift first item
+        const s = firstSlideStride();
         const first = displaySlides.value.shift();
         if (first !== undefined) {
           // add it to the end of the array
@@ -182,7 +189,23 @@ const removeAllEventListeners = () => {
   document.removeEventListener("touchcancel", stopDragging);
 };
 
-const stride = () => (props.slideWidth ?? 0) + 20;
+const firstSlideStride = (): number => {
+  if (props.mode === "fixed") {
+    return (props.slideWidth ?? 0) + props.gap;
+  }
+  const slide = slidesRef.value?.at(0);
+  if (!slide) return props.gap;
+  return slide.getBoundingClientRect().width + props.gap;
+};
+
+const lastSlideStride = (): number => {
+  if (props.mode === "fixed") {
+    return (props.slideWidth ?? 0) + props.gap;
+  }
+  const slide = slidesRef.value?.at(-1);
+  if (!slide) return props.gap;
+  return slide.getBoundingClientRect().width + props.gap;
+};
 
 const next = () => {
   const { snapPositions } = swiperCalcs.value;
@@ -198,15 +221,16 @@ const next = () => {
 
   // at the end: rotate first slide to end and rebase xPos one stride back
   // (transition off via isDragging), then on next tick animate forward
+  const s = firstSlideStride();
   const first = displaySlides.value.shift();
   if (first === undefined) return;
   displaySlides.value.push(first);
   isDragging.value = true;
-  xPos.value -= stride();
+  xPos.value -= s;
   nextTick(() => {
     stripRef.value?.getBoundingClientRect(); // force reflow
     isDragging.value = false;
-    xPos.value += stride();
+    xPos.value += s;
   });
 };
 
@@ -222,15 +246,16 @@ const previous = () => {
 
   if (!canLoop.value) return;
 
+  const s = lastSlideStride();
   const last = displaySlides.value.pop();
   if (last === undefined) return;
   displaySlides.value.unshift(last);
   isDragging.value = true;
-  xPos.value += stride();
+  xPos.value += s;
   nextTick(() => {
     stripRef.value?.getBoundingClientRect();
     isDragging.value = false;
-    xPos.value -= stride();
+    xPos.value -= s;
   });
 };
 
@@ -278,7 +303,7 @@ const computeSlidesPerView = () => {
   if (!swiperWidth) return 1;
 
   if (props.mode === "fixed" && props.slideWidth) {
-    return Math.floor(swiperWidth / stride());
+    return Math.floor(swiperWidth / firstSlideStride());
   }
 
   // auto mode: count slides until they fill the viewport
@@ -286,7 +311,7 @@ const computeSlidesPerView = () => {
   let acc = 0;
   let count = 0;
   for (const s of slides) {
-    acc += s.getBoundingClientRect().width + 20;
+    acc += s.getBoundingClientRect().width + props.gap;
     count++;
     if (acc >= swiperWidth) break;
   }
