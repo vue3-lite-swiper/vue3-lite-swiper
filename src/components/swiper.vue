@@ -44,11 +44,11 @@ import {
   onMounted,
   ref,
   useTemplateRef,
-  computed,
   onBeforeUnmount,
 } from "vue";
 import { getClientX } from "~/utils/client";
 import { useAutoPlay } from "~/composables/useAutoPlay";
+import { usePagination } from "~/composables/usePagination";
 
 const props = withDefaults(
   defineProps<{
@@ -103,15 +103,6 @@ const preCalc = () => {
     props.slidesPerSwipe,
   );
 };
-
-const pagination = computed(() => {
-  const { snapPositions } = swiperCalcs.value;
-
-  return {
-    current: snapPositions.findIndex((item) => item === xPos.value),
-    total: snapPositions.length,
-  };
-});
 
 const startDragging = (e: MouseEvent | TouchEvent) => {
   isDragging.value = true;
@@ -207,73 +198,17 @@ const lastSlideStride = (): number => {
   return slide.getBoundingClientRect().width + props.gap;
 };
 
-const next = () => {
-  const { snapPositions } = swiperCalcs.value;
-
-  const nextPos = snapPositions?.[pagination.value.current + 1];
-
-  if (nextPos !== undefined) {
-    xPos.value = nextPos;
-    return;
-  }
-
-  if (!canLoop.value) return;
-
-  // at the end: rotate first slide to end and rebase xPos one stride back
-  // (transition off via isDragging), then on next tick animate forward
-  const s = firstSlideStride();
-  const first = displaySlides.value.shift();
-
-  if (first === undefined) return;
-  displaySlides.value.push(first);
-
-  isDragging.value = true;
-  xPos.value -= s;
-  nextTick(() => {
-    preCalc();
-    stripRef.value?.getBoundingClientRect(); // force reflow
-    isDragging.value = false;
-    xPos.value += s;
-  });
-};
-
-const previous = () => {
-  const { snapPositions } = swiperCalcs.value;
-
-  const prevPos = snapPositions?.[pagination.value.current - 1];
-
-  if (prevPos !== undefined) {
-    xPos.value = prevPos;
-    return;
-  }
-
-  if (!canLoop.value) return;
-
-  const s = lastSlideStride();
-  const last = displaySlides.value.pop();
-  if (last === undefined) return;
-  displaySlides.value.unshift(last);
-
-  isDragging.value = true;
-  xPos.value += s;
-  nextTick(() => {
-    preCalc();
-    stripRef.value?.getBoundingClientRect();
-    isDragging.value = false;
-    xPos.value -= s;
-  });
-};
-
-const goToIndex = (index: number) => {
-  const { snapPositions } = swiperCalcs.value;
-
-  const pos = snapPositions?.[index];
-  if (pos !== undefined) {
-    xPos.value = pos;
-  } else {
-    throw new Error(`index [${index}] is out of bound`);
-  }
-};
+const { pagination, next, previous, goToIndex } = usePagination({
+  xPos,
+  swiperCalcs,
+  canLoop,
+  displaySlides,
+  isDragging,
+  stripRef,
+  firstSlideStride,
+  lastSlideStride,
+  preCalc,
+});
 
 const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
   canLoop,
