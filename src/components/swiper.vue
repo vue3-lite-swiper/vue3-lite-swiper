@@ -39,8 +39,16 @@ import {
   getFixedSnapPositions,
   getSnapPositions,
 } from "~/utils/snap";
-import { nextTick, onMounted, ref, useTemplateRef, watch, computed } from "vue";
+import {
+  nextTick,
+  onMounted,
+  ref,
+  useTemplateRef,
+  computed,
+  onBeforeUnmount,
+} from "vue";
 import { getClientX } from "~/utils/client";
+import { useAutoPlay } from "~/composables/useAutoPlay";
 
 const props = withDefaults(
   defineProps<{
@@ -69,7 +77,6 @@ const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
 
 let lastMouseX = 0;
-let autoPlayIntervalId: number;
 
 const swiperCalcs = ref<{ snapPositions: number[]; maxPos: number }>({
   snapPositions: [0],
@@ -268,33 +275,13 @@ const goToIndex = (index: number) => {
   }
 };
 
-const startAutoPlay = () => {
-  autoPlayIntervalId = setInterval(() => {
-    if (
-      !canLoop.value &&
-      pagination.value.current === pagination.value.total - 1
-    ) {
-      goToIndex(0);
-    } else {
-      next();
-    }
-  }, 500);
-};
-
-const stoptAutoPlay = () => {
-  clearInterval(autoPlayIntervalId);
-};
-
-watch(
-  () => props.autoPlay,
-  (newValue) => {
-    if (newValue) {
-      startAutoPlay();
-    } else {
-      stoptAutoPlay();
-    }
-  },
-);
+const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
+  canLoop,
+  pagination,
+  next,
+  goToIndex,
+  enabled: () => !!props.autoPlay,
+});
 
 const computeSlidesPerView = () => {
   const swiperWidth = swiperRef.value?.getBoundingClientRect().width ?? 0;
@@ -334,9 +321,11 @@ onMounted(async () => {
   await nextTick();
   preCalc();
 
-  if (props.autoPlay) {
-    startAutoPlay();
-  }
+  if (props.autoPlay) startAutoPlay();
+});
+
+onBeforeUnmount(() => {
+  stopAutoPlay();
 });
 
 defineExpose({
