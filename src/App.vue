@@ -10,12 +10,11 @@
     <Swiper
       class="h-52 w-[720px] bg-blue-500 py-10"
       ref="mySwiper"
-      loop
       :auto-play="autoPlayEnabled"
       :slides="widths"
       :slides-num="10"
-      :slides-per-swipe="1"
       :mode="'auto'"
+      loop
     >
       <template #default="{ item }">
         <div
@@ -56,10 +55,22 @@ import Swiper from "./components/swiper.vue";
 const autoPlayEnabled = ref(false);
 const mySwiperRef = useTemplateRef("mySwiper");
 
-const widths = computed(() =>
-  Array.from({ length: 10 }, (_, i) => ({
-    key: i,
-    width: Math.floor(Math.random() * 200 + 100),
-  })),
+const widths = computed(
+  () => [
+    { key: 0, width: 233 },
+    { key: 1, width: 118 },
+    { key: 2, width: 111 },
+    { key: 3, width: 238 },
+    { key: 4, width: 257 },
+    { key: 5, width: 269 },
+    { key: 6, width: 162 },
+    { key: 7, width: 293 },
+    { key: 8, width: 230 },
+    { key: 9, width: 148 },
+  ],
+  // Array.from({ length: 10 }, (_, i) => ({
+  //   key: i,
+  //   width: Math.floor(Math.random() * 200 + 100),
+  // })),
 );
 </script>
