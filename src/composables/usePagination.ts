@@ -1,18 +1,17 @@
 import { computed, nextTick, type Ref } from "vue";
 
-interface UsePaginationOptions<T> {
+interface UsePaginationOptions {
   xPos: Ref<number>;
   swiperCalcs: Ref<{ snapPositions: number[]; maxPos: number }>;
   canLoop: Ref<boolean>;
-  displaySlides: Ref<T[]>;
   isDragging: Ref<boolean>;
   stripRef: Readonly<Ref<HTMLElement | null>>;
-  firstSlideStride: () => number;
-  lastSlideStride: () => number;
+  rotateForward: () => number;
+  rotateBackward: () => number;
   preCalc: () => void;
 }
 
-export function usePagination<T>(opts: UsePaginationOptions<T>) {
+export function usePagination(opts: UsePaginationOptions) {
   const pagination = computed(() => {
     const { snapPositions } = opts.swiperCalcs.value;
     return {
@@ -32,19 +31,14 @@ export function usePagination<T>(opts: UsePaginationOptions<T>) {
 
     if (!opts.canLoop.value) return;
 
-    // at the end: rotate first slide to end and rebase xPos one stride back
-    // (transition off via isDragging), then on next tick animate forward
-    const s = opts.firstSlideStride();
-    const first = opts.displaySlides.value.shift();
-
-    if (first === undefined) return;
-    opts.displaySlides.value.push(first);
+    const s = opts.rotateForward();
+    if (s === 0) return;
 
     opts.isDragging.value = true;
     opts.xPos.value -= s;
     nextTick(() => {
       opts.preCalc();
-      opts.stripRef.value?.getBoundingClientRect(); // force reflow
+      opts.stripRef.value?.getBoundingClientRect();
       opts.isDragging.value = false;
       opts.xPos.value += s;
     });
@@ -61,10 +55,8 @@ export function usePagination<T>(opts: UsePaginationOptions<T>) {
 
     if (!opts.canLoop.value) return;
 
-    const s = opts.lastSlideStride();
-    const last = opts.displaySlides.value.pop();
-    if (last === undefined) return;
-    opts.displaySlides.value.unshift(last);
+    const s = opts.rotateBackward();
+    if (s === 0) return;
 
     opts.isDragging.value = true;
     opts.xPos.value += s;

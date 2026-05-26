@@ -39,16 +39,11 @@ import {
   getFixedSnapPositions,
   getSnapPositions,
 } from "~/utils/snap";
-import {
-  nextTick,
-  onMounted,
-  ref,
-  useTemplateRef,
-  onBeforeUnmount,
-} from "vue";
+import { nextTick, onMounted, ref, useTemplateRef, onBeforeUnmount } from "vue";
 import { getClientX } from "~/utils/client";
 import { useAutoPlay } from "~/composables/useAutoPlay";
 import { usePagination } from "~/composables/usePagination";
+import { useLoop } from "~/composables/useLoop";
 
 const props = withDefaults(
   defineProps<{
@@ -69,12 +64,26 @@ const props = withDefaults(
 
 const xPos = ref(0);
 const isDragging = ref(false);
-const canLoop = ref(false);
-const displaySlides = ref<T[]>([...props.slides]);
 
 const swiperRef = useTemplateRef("swiper");
 const slidesRef = useTemplateRef("slides");
 const stripRef = useTemplateRef("strip");
+
+const {
+  displaySlides,
+  canLoop,
+  rotateForward,
+  rotateBackward,
+  init: initLoop,
+} = useLoop({
+  slides: props.slides,
+  loop: !!props.loop,
+  mode: () => props.mode,
+  slideWidth: () => props.slideWidth,
+  gap: () => props.gap,
+  swiperRef,
+  slidesRef,
+});
 
 let lastMouseX = 0;
 
@@ -124,29 +133,22 @@ const handleDrag = async (e: MouseEvent | TouchEvent) => {
 
     const delta = lastMouseX - currentMouseX;
     if (canLoop.value) {
-      if (xPos.value + delta < 0) {
-        // pop last item
-        const s = lastSlideStride();
-        const last = displaySlides.value.pop();
+      const { snapPositions } = swiperCalcs.value;
+      const forwardThreshold =
+        snapPositions[snapPositions.length - 2] ?? swiperCalcs.value.maxPos;
 
-        if (last !== undefined) {
-          // add it to the start of the array
-          displaySlides.value.unshift(last);
+      if (xPos.value + delta < 0) {
+        const s = rotateBackward();
+        if (s > 0) {
           await nextTick();
           preCalc();
-          // adjust x-position to account for the item being prepended
           xPos.value += s;
         }
-      } else if (xPos.value + delta > swiperCalcs.value.maxPos) {
-        // shift first item
-        const s = firstSlideStride();
-        const first = displaySlides.value.shift();
-        if (first !== undefined) {
-          // add it to the end of the array
-          displaySlides.value.push(first);
+      } else if (xPos.value + delta > forwardThreshold) {
+        const s = rotateForward();
+        if (s > 0) {
           await nextTick();
           preCalc();
-          // adjust x-position to account for the item being removed from the start
           xPos.value -= s;
         }
       }
@@ -180,33 +182,14 @@ const removeAllEventListeners = () => {
   document.removeEventListener("touchcancel", stopDragging);
 };
 
-const firstSlideStride = (): number => {
-  if (props.mode === "fixed") {
-    return (props.slideWidth ?? 0) + props.gap;
-  }
-  const slide = slidesRef.value?.at(0);
-  if (!slide) return props.gap;
-  return slide.getBoundingClientRect().width + props.gap;
-};
-
-const lastSlideStride = (): number => {
-  if (props.mode === "fixed") {
-    return (props.slideWidth ?? 0) + props.gap;
-  }
-  const slide = slidesRef.value?.at(-1);
-  if (!slide) return props.gap;
-  return slide.getBoundingClientRect().width + props.gap;
-};
-
 const { pagination, next, previous, goToIndex } = usePagination({
   xPos,
   swiperCalcs,
   canLoop,
-  displaySlides,
   isDragging,
   stripRef,
-  firstSlideStride,
-  lastSlideStride,
+  rotateForward,
+  rotateBackward,
   preCalc,
 });
 
@@ -218,40 +201,8 @@ const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
   enabled: () => !!props.autoPlay,
 });
 
-const computeSlidesPerView = () => {
-  const swiperWidth = swiperRef.value?.getBoundingClientRect().width ?? 0;
-  if (!swiperWidth) return 1;
-
-  if (props.mode === "fixed" && props.slideWidth) {
-    return Math.floor(swiperWidth / firstSlideStride());
-  }
-
-  // auto mode: count slides until they fill the viewport
-  const slides = slidesRef.value ?? [];
-  let acc = 0;
-  let count = 0;
-  for (const s of slides) {
-    acc += s.getBoundingClientRect().width + props.gap;
-    count++;
-    if (acc >= swiperWidth) break;
-  }
-  return count || 1;
-};
-
 onMounted(async () => {
-  if (props.loop) {
-    const spv = computeSlidesPerView();
-
-    if (props.slides.length < spv) {
-      // not enough slides to loop visually — keep canLoop false
-    } else if (props.slides.length <= spv + 1) {
-      // barely enough — append spv slides as off-screen buffer for rotation
-      displaySlides.value = [...props.slides, ...props.slides.slice(0, spv)];
-      canLoop.value = true;
-    } else {
-      canLoop.value = true;
-    }
-  }
+  initLoop();
 
   await nextTick();
   preCalc();
