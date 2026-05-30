@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2024 vue3-lite-swiper
+Copyright (c) 2026 vue3-lite-swiper
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

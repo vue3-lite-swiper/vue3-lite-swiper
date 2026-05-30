@@ -1,6 +1,6 @@
 import type { App } from "vue";
 import Swiper from "./components/swiper.vue";
-import "./assets/css/main.css";
+import "./assets/css/compiled.css";
 
 export { Swiper };
 
