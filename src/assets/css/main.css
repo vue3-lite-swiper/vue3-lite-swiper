@@ -1,1 +1,9 @@
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+
+/* Scope all utilities under root wrapper class */
+@layer utilities {
+  .vls {
+    @tailwind utilities;
+  }
+}

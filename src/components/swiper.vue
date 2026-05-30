@@ -1,6 +1,10 @@
 <template>
   <!-- Swiper -->
-  <div class="flex overflow-hidden" ref="swiper">
+  <div
+    class="vls"
+    ref="swiper"
+    :style="{ display: 'flex', overflow: 'hidden' }"
+  >
     <!-- Strip -->
     <div
       ref="strip"
