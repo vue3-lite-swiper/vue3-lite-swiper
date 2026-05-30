@@ -8,7 +8,7 @@
     </label>
 
     <Swiper
-      class="h-52 w-[720px] bg-blue-500 py-10"
+      class="h-52 w-180 bg-blue-500 py-10"
       ref="mySwiper"
       :auto-play="autoPlayEnabled"
       :slides="widths"
