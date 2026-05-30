@@ -20,28 +20,49 @@ export function usePagination(opts: UsePaginationOptions) {
     };
   });
 
-  const next = () => {
-    const { snapPositions } = opts.swiperCalcs.value;
-    const nextPos = snapPositions?.[pagination.value.current + 1];
+  const next = async () => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { snapPositions: snaps } = opts.swiperCalcs.value;
+      const idx = snaps.findIndex((p) => p === opts.xPos.value);
+      const next = snaps[idx + 1];
 
-    if (nextPos !== undefined) {
-      opts.xPos.value = nextPos;
-      return;
-    }
+      if (next === undefined) return;
 
-    if (!opts.canLoop.value) return;
+      const isLoopBoundary =
+        opts.canLoop.value &&
+        (next === snaps[snaps.length - 1] ||
+          next === opts.swiperCalcs.value.maxPos);
 
-    const s = opts.rotateForward();
-    if (s === 0) return;
+      if (!isLoopBoundary) {
+        opts.xPos.value = next;
+        return;
+      }
 
-    opts.isDragging.value = true;
-    opts.xPos.value -= s;
-    nextTick(() => {
+      const s = opts.rotateForward();
+      if (s <= 0) return;
+
+      opts.isDragging.value = true;
+      opts.xPos.value -= s;
+      await nextTick();
       opts.preCalc();
       opts.stripRef.value?.getBoundingClientRect();
+
+      const newSnaps = opts.swiperCalcs.value.snapPositions;
+      const newCur = newSnaps.findIndex(
+        (p) => p === Math.round(opts.xPos.value),
+      );
+      const safeNext = newSnaps.slice(newCur + 1, -1)[0];
+
+      if (safeNext !== undefined) {
+        opts.isDragging.value = false;
+        opts.xPos.value = safeNext;
+        return;
+      }
+
+      // penultimate — reposition silently (isDragging still true) and retry
+      opts.xPos.value = newSnaps[newCur] ?? next - s;
       opts.isDragging.value = false;
-      opts.xPos.value += s;
-    });
+    }
   };
 
   const previous = () => {
