@@ -1,9 +1,6 @@
 name: Release & Publish
 
 on:
-  push:
-    branches: [main]
-
   workflow_dispatch:
     inputs:
       branch:
@@ -170,7 +167,12 @@ jobs:
           node-version: "lts/*"
           registry-url: "https://registry.npmjs.org"
 
-      - run: npm i
-      - run: npm run build
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun i
+      - run: bun run build
       - run: npm pack --dry-run
       - run: npm publish --provenance --access public
