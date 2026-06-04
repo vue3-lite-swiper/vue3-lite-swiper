@@ -4,6 +4,8 @@
     class="vls"
     ref="swiper"
     :style="{ display: 'flex', overflow: 'hidden' }"
+    @mouseenter="props.pauseOnHover && stopAutoPlay()"
+    @mouseleave="props.pauseOnHover && props.autoPlay && startAutoPlay()"
   >
     <!-- Strip -->
     <div
@@ -28,7 +30,7 @@
       <!-- Slides -->
       <div
         v-for="(item, index) in displaySlides"
-        class="flex shrink-0 select-none"
+        class="pointer-events-none flex w-full shrink-0 select-none"
         ref="slides"
       >
         <slot :item :index />
@@ -54,6 +56,8 @@ const props = withDefaults(
     slides: T[];
     slidesPerSwipe?: number;
     autoPlay?: boolean;
+    autoPlayInterval?: number;
+    pauseOnHover?: boolean;
     loop?: boolean;
     mode?: "fixed" | "auto";
     slideWidth?: number;
@@ -63,6 +67,8 @@ const props = withDefaults(
     slidesPerSwipe: 1,
     mode: "fixed",
     gap: 20,
+    autoPlayInterval: 3000,
+    pauseOnHover: true,
   },
 );
 
@@ -203,6 +209,7 @@ const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
   next,
   goToIndex,
   enabled: () => !!props.autoPlay,
+  interval: props.autoPlayInterval,
 });
 
 onMounted(async () => {
