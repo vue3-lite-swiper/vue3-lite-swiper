@@ -1,166 +1,200 @@
 # vue3-lite-swiper
 
-A lightweight, Vue 3 swiper component library for building responsive image galleries and carousels with minimal dependencies optimized for modern web applications.
+**Vue3 Lite Swiper** is a lightweight Vue 3 carousel component with zero runtime dependencies. It handles touch and mouse drag, snap positioning, infinite looping, and autoplay — all without a single external package.
 
-## Features
+📖 **[Read the full documentation →](https://vue3-lite-swiper.vuedoo.org)**
 
-- **Lightweight** — Minimal bundle size with zero external dependencies (Vue 3 only)
-- **Touch & Mouse Support** — Full support for desktop and mobile interactions
-- **Multiple Modes** — Fixed-width and auto-sizing slide layouts
-- **Infinite Looping** — Seamless carousel looping with intelligent array rotation
-- **Auto-Play** — Configurable automatic slide progression
-- **Flexible Navigation** — Programmatic control with `next()`, `previous()`, and `goToIndex()`
-- **Generic TypeScript** — Full type safety for any slide data type
-- **Customizable Styling** — Built with Tailwind CSS, easy to override
-- **Smooth Animations** — CSS-based transitions for 60fps performance
+## Why Vue3 Lite Swiper?
+
+Most carousel libraries ship with their own animation engine, event system, and DOM abstractions. Vue3 Lite Swiper keeps things simple:
+
+- **Lightweight** — No runtime dependencies, small bundle footprint
+- **SSR Compatible** — Safe to use in Nuxt and other SSR frameworks out of the box
+- **Looping** — Smooth infinite looping without visual jumps or layout shifts
+- **TypeScript** — Fully typed slot props with your own data shape
+- **Touch & Mouse** — Native drag support works seamlessly on desktop and mobile
+- **Two Layout Modes** — Fixed-width grids or fluid auto-sizing to fit any design
 
 ## Installation
 
-Install the package using npm, yarn, or bun:
+Install the package using your preferred package manager.
 
-```bash
+```sh
+# bun
+bun add vue3-lite-swiper
+
+# npm
 npm install vue3-lite-swiper
+
+# pnpm
+pnpm add vue3-lite-swiper
+
+# yarn
+yarn add vue3-lite-swiper
 ```
 
-## Quick Start
+## Basic Example
 
-### Basic Usage
+A minimal setup using fixed-width slides with previous and next navigation controls.
 
 ```vue
-<template>
-  <div>
-    <Swiper
-      ref="swiperRef"
-      :slides="images"
-      :gap="20"
-      mode="fixed"
-      :slideWidth="300"
-      :autoPlay="true"
-      :loop="true"
-    >
-      <template #default="{ item }">
-        <img
-          :src="item.url"
-          :alt="item.title"
-          class="h-full w-full object-cover"
-        />
-      </template>
-    </Swiper>
-
-    <!-- Navigation -->
-    <button @click="swiperRef?.previous()">Previous</button>
-    <button @click="swiperRef?.next()">Next</button>
-    <span
-      >{{ swiperRef?.pagination.value.current }} /
-      {{ swiperRef?.pagination.value.total }}</span
-    >
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
 import { Swiper } from "vue3-lite-swiper";
 
-const swiperRef = useTemplateRef("swiperRef");
+const swiper = useTemplateRef("swiper");
 
-const images = [
-  { url: "image1.jpg", title: "Image 1" },
-  { url: "image2.jpg", title: "Image 2" },
-  { url: "image3.jpg", title: "Image 3" },
+const slides = [
+  { label: "Slide 1", color: "#60a5fa" },
+  { label: "Slide 2", color: "#34d399" },
+  { label: "Slide 3", color: "#a78bfa" },
 ];
 </script>
+
+<template>
+  <Swiper
+    ref="swiper"
+    mode="fixed"
+    :slides="slides"
+    :slide-width="220"
+    :gap="16"
+  >
+    <template #default="{ item }">
+      <div :style="{ background: item.color }">{{ item.label }}</div>
+    </template>
+  </Swiper>
+
+  <button @click="swiper?.previous()">Prev</button>
+  <button @click="swiper?.next()">Next</button>
+</template>
 ```
-
-### As a Plugin
-
-```ts
-import { createApp } from "vue";
-import SwiperPlugin from "vue3-lite-swiper";
-
-const app = createApp(App);
-app.use(SwiperPlugin);
-app.mount("#app");
-```
-
-Then use `<Swiper>` directly in any component without explicit imports.
 
 ## Props
 
-| Prop             | Type                | Default   | Description                                                   |
-| ---------------- | ------------------- | --------- | ------------------------------------------------------------- |
-| `slides`         | `T[]`               | —         | Array of slide data (required)                                |
-| `slidesPerSwipe` | `number`            | `1`       | Number of slides to advance per swipe                         |
-| `autoPlay`       | `boolean`           | `false`   | Enable automatic slide progression                            |
-| `loop`           | `boolean`           | `false`   | Enable infinite carousel looping                              |
-| `mode`           | `"fixed" \| "auto"` | `"fixed"` | Layout mode: `fixed` uses explicit width, `auto` measures DOM |
-| `slideWidth`     | `number`            | —         | Required when `mode="fixed"`; slide width in pixels           |
-| `gap`            | `number`            | `20`      | Gap between slides in pixels                                  |
+The `<Swiper>` component is generic — the type parameter `T` is inferred from the `:slides` prop, giving you fully typed slot props with no casting.
 
-## Exposed Methods & Computed Properties
+| Prop             | Type                | Default   | Description                                                                         |
+| ---------------- | ------------------- | --------- | ----------------------------------------------------------------------------------- |
+| `slides`         | `T[]`               | —         | **Required.** The data array. Each element is passed as `item` in the default slot. |
+| `mode`           | `"fixed" \| "auto"` | `"fixed"` | How slide widths and snap positions are resolved (see below).                       |
+| `slideWidth`     | `number`            | —         | Slide width in pixels. **Required when `mode="fixed"`.**                            |
+| `gap`            | `number`            | `20`      | Horizontal gap between slides, in pixels.                                           |
+| `slidesPerSwipe` | `number`            | `1`       | Slides to advance per navigation step.                                              |
+| `loop`           | `boolean`           | `false`   | Enable seamless infinite looping.                                                   |
+| `autoPlay`       | `boolean`           | `false`   | Advance automatically at a fixed interval.                                          |
 
-Access via `ref`:
+### `mode`
 
-```ts
-const swiperRef = ref();
+The `mode` prop controls how the swiper figures out each slide's width and where the snap positions land.
 
-// Methods
-swiperRef.value.next(); // Move to next slide
-swiperRef.value.previous(); // Move to previous slide
-swiperRef.value.goToIndex(2); // Jump to slide at index 2
-
-// Computed
-swiperRef.value.pagination; // { current: number, total: number }
-```
+- **`"fixed"`** — You provide `slideWidth`. Snap positions are computed mathematically without measuring the DOM. This is the fastest option and the right choice whenever every slide is the same width. Omitting `slideWidth` in this mode logs an error and disables all snap navigation.
+- **`"auto"`** — The component measures each slide's rendered width via `getBoundingClientRect()` after mount. Use this when slide widths differ or are driven by CSS rather than a fixed pixel value.
 
 ## Slots
 
-#### Default Slot
+### `default`
 
-Render individual slides with access to slide data and index:
+Renders a single slide. It receives the typed slide data and its render index.
 
 ```vue
 <Swiper :slides="items">
   <template #default="{ item, index }">
-    <div>{{ index }}: {{ item.name }}</div>
+    <!-- item is typed as T -->
+    <!-- index is the render position (may differ from the original when loop is active) -->
   </template>
 </Swiper>
 ```
 
-**Scoped Props:**
+| Slot prop | Type     | Description                                                                                                                         |
+| --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `item`    | `T`      | The slide's data, typed from your array.                                                                                            |
+| `index`   | `number` | Render position. When `loop` is enabled the component rotates the array internally, so this may not match the original array index. |
 
-- `item: T` — The current slide data
-- `index: number` — The slide index
+## Component Ref
+
+Vue3 Lite Swiper exposes an imperative API via a template ref. Get a reference to the component instance with `useTemplateRef` (Vue 3.5+):
+
+```vue
+<script setup lang="ts">
+import { useTemplateRef } from "vue";
+import { Swiper } from "vue3-lite-swiper";
+
+const swiper = useTemplateRef("swiper");
+</script>
+
+<template>
+  <Swiper ref="swiper" :slides="slides" :slide-width="300" />
+</template>
+```
+
+| Method             | Description                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `next()`           | Advance to the next snap position. When `loop` is enabled and at the boundary, the strip rotates seamlessly. |
+| `previous()`       | Move to the previous snap position. When `loop` is enabled and at the start, the strip rotates backward.     |
+| `goToIndex(index)` | Jump directly to a snap position by zero-based index. Throws if out of bounds.                               |
+
+```ts
+swiper.value?.next();
+swiper.value?.previous();
+swiper.value?.goToIndex(0); // first slide
+```
+
+> **Snap positions vs slides** — `goToIndex` operates on **snap positions**, not the raw slides array. With `slidesPerSwipe: 2` and 8 slides, there are 4 snap positions (indices 0–3).
+
+### `pagination`
+
+A reactive computed property available on the component instance. Use it to build custom navigation UI.
+
+```ts
+swiper.value?.pagination;
+// { current: number, total: number }
+```
+
+| Property  | Type     | Description                                                        |
+| --------- | -------- | ------------------------------------------------------------------ |
+| `current` | `number` | Zero-based index of the active snap position. `-1` if not aligned. |
+| `total`   | `number` | Total number of snap positions.                                    |
 
 ## Examples
 
-### Auto-Sizing Responsive Gallery
+Live demos for every mode are in the [Examples](https://vue3-lite-swiper.vuedoo.org/examples/fixed) section of the docs.
+
+### [Fixed Mode](https://vue3-lite-swiper.vuedoo.org/examples/fixed)
+
+Use `mode="fixed"` (the default) when all slides share the same width. Snap positions are computed mathematically — no DOM measurement needed. Set `slides-per-swipe` to jump several slides per step (with 8 slides and `slides-per-swipe="3"`, the snap positions are `[0, 3, 6]`).
 
 ```vue
-<Swiper :slides="items" mode="auto" :gap="20">
-  <template #default="{ item }">
-    <div class="shrink-0">{{ item.content }}</div>
-  </template>
-</Swiper>
+<Swiper :slides="slides" mode="fixed" :slide-width="220" :gap="16" />
 ```
 
-### Infinite Auto-Play Carousel
+### [Auto Mode](https://vue3-lite-swiper.vuedoo.org/examples/auto)
+
+Use `mode="auto"` when slides have **different widths**. The component measures each slide after mount using `getBoundingClientRect()` and builds snap positions from those measurements. Omit `slide-width` and size your slides with CSS.
+
+```vue
+<Swiper :slides="slides" mode="auto" :gap="12" />
+```
+
+### [Infinite Loop](https://vue3-lite-swiper.vuedoo.org/examples/loop)
+
+Enable `loop` to scroll endlessly in both directions. Vue3 Lite Swiper uses **array rotation** — DOM items are moved from one end of the strip to the other — so there is no clone flicker or position jump. The loop requires at least one more slide than fits in the viewport; otherwise it is silently ignored. Compatible with both `fixed` and `auto` modes.
+
+```vue
+<Swiper :slides="slides" :slide-width="220" :gap="16" loop />
+```
+
+### [Auto Play](https://vue3-lite-swiper.vuedoo.org/examples/autoplay)
+
+Set `:auto-play="true"` to advance slides automatically. Toggle it reactively to pause and resume at any time. With `loop`, it advances indefinitely; without `loop`, it resets to the first slide each time it reaches the end.
 
 ```vue
 <Swiper
-  :slides="testimonials"
-  mode="fixed"
-  :slideWidth="400"
-  :autoPlay="true"
-  :loop="true"
-  :gap="24"
->
-  <template #default="{ item }">
-    <div class="p-6 bg-white rounded-xl shadow">
-      <p>"{{ item.quote }}"</p>
-      <p class="mt-4 font-semibold">— {{ item.author }}</p>
-    </div>
-  </template>
-</Swiper>
+  :slides="slides"
+  :slide-width="220"
+  :gap="16"
+  :auto-play="playing"
+  loop
+/>
 ```
 
 ## License
