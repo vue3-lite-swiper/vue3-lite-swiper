@@ -1,0 +1,27 @@
+/* Brand color derived from logo primary green: #41B682 */
+:root {
+  --vp-c-brand-1: #41b682;
+  --vp-c-brand-2: #37a372;
+  --vp-c-brand-3: #52c893;
+  --vp-c-brand-soft: rgba(65, 182, 130, 0.14);
+
+  --vp-home-hero-image-filter: blur(72px);
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    #37a372 30%,
+    #52c893 70%
+  );
+}
+
+.dark {
+  --vp-c-brand-1: #52c893;
+  --vp-c-brand-2: #41b682;
+  --vp-c-brand-3: #37a372;
+  --vp-c-brand-soft: rgba(65, 182, 130, 0.16);
+}
+
+.VPHero .image-src {
+  max-width: 340px !important;
+  max-height: 340px !important;
+  width: 100%;
+}
