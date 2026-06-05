@@ -35,3 +35,6 @@ coverage
 # Vitest
 __screenshots__/
 compiled.css
+
+docs/.vitepress/cache
+docs/.vitepress/dist
