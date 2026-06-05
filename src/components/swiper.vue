@@ -3,18 +3,16 @@
   <div
     class="vls"
     ref="swiper"
-    :style="{ display: 'flex', overflow: 'hidden' }"
     @mouseenter="props.pauseOnHover && stopAutoPlay()"
     @mouseleave="props.pauseOnHover && props.autoPlay && startAutoPlay()"
   >
     <!-- Strip -->
     <div
       ref="strip"
-      :class="[
-        'cursor-grab select-none active:cursor-grabbing',
-        mode === 'fixed' ? 'grid grid-flow-col' : 'flex',
-      ]"
+      class="vls-strip"
       :style="{
+        display: mode === 'fixed' ? 'grid' : 'flex',
+        gridAutoFlow: 'column',
         gap: `${gap}px`,
         transform: `translateX(${-xPos}px)`,
         transition: isDragging
@@ -30,7 +28,7 @@
       <!-- Slides -->
       <div
         v-for="(item, index) in displaySlides"
-        class="pointer-events-none flex w-full shrink-0 select-none"
+        class="vls-slide"
         ref="slides"
       >
         <slot :item :index />
@@ -232,3 +230,27 @@ defineExpose({
   goToIndex,
 });
 </script>
+
+<style scoped>
+.vls {
+  display: flex;
+  overflow: hidden;
+}
+
+.vls-strip {
+  cursor: grab;
+  user-select: none;
+}
+
+.vls-strip:active {
+  cursor: grabbing;
+}
+
+.vls-slide {
+  display: flex;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+  width: 100%;
+}
+</style>
