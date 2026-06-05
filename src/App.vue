@@ -9,12 +9,12 @@
       </label>
 
       <Swiper
-        class="h-52 w-180 bg-blue-500 p-2 py-10"
+        class="swiper h-52 w-180 bg-blue-500 p-2 py-10"
         ref="mySwiper"
         :auto-play="autoPlayEnabled"
-        :auto-play-interval="3000"
+        :auto-play-interval="1000"
         :slides="banner"
-        :pause-on-hover="true"
+        :pause-on-hover="false"
         mode="fixed"
         :slide-width="720"
         :loop="true"
@@ -44,6 +44,13 @@
     </div>
   </div>
 </template>
+
+<!-- This is when mode is auto  -->
+<style scoped>
+.swiper:deep(.vls-swiper) {
+  width: 100%;
+}
+</style>
 
 <script setup lang="ts">
 import { ref, useTemplateRef } from "vue";
