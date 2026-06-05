@@ -30,7 +30,7 @@
       <!-- Slides -->
       <div
         v-for="(item, index) in displaySlides"
-        class="pointer-events-none flex w-full shrink-0 select-none"
+        class="vls-swiper pointer-events-none flex shrink-0 select-none"
         ref="slides"
       >
         <slot :item :index />
