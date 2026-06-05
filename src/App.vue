@@ -9,23 +9,18 @@
       </label>
 
       <Swiper
-        class="h-52 w-180 bg-blue-500 py-10"
+        class="swiper h-52 w-180 bg-blue-500 p-2 py-10"
         ref="mySwiper"
         :auto-play="autoPlayEnabled"
-        :slides="widths"
-        :slides-num="10"
-        :mode="'auto'"
-        loop
+        :auto-play-interval="1000"
+        :slides="banner"
+        :pause-on-hover="false"
+        mode="fixed"
+        :slide-width="720"
+        :loop="true"
       >
         <template #default="{ item }">
-          <div
-            class="flex shrink-0 justify-center rounded bg-pink-200 select-none"
-            :style="{
-              width: `${item.width}px`,
-            }"
-          >
-            {{ item }}
-          </div>
+          <img :src="item.image" class="w-full object-fill" />
         </template>
       </Swiper>
 
@@ -50,29 +45,69 @@
   </div>
 </template>
 
+<!-- This is when mode is auto  -->
+<style scoped>
+.swiper:deep(.vls-swiper) {
+  width: 100%;
+}
+</style>
+
 <script setup lang="ts">
-import { ref, computed, useTemplateRef } from "vue";
+import { ref, useTemplateRef } from "vue";
 import Swiper from "./components/swiper.vue";
 
 const autoPlayEnabled = ref(false);
 const mySwiperRef = useTemplateRef("mySwiper");
 
-const widths = computed(
-  () => [
-    { key: 0, width: 233 },
-    { key: 1, width: 118 },
-    { key: 2, width: 111 },
-    { key: 3, width: 238 },
-    { key: 4, width: 257 },
-    { key: 5, width: 269 },
-    { key: 6, width: 162 },
-    { key: 7, width: 293 },
-    { key: 8, width: 230 },
-    { key: 9, width: 148 },
-  ],
-  // Array.from({ length: 10 }, (_, i) => ({
-  //   key: i,
-  //   width: Math.floor(Math.random() * 200 + 100),
-  // })),
-);
+const banner = [
+  {
+    title: "image 1",
+    image:
+      "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/zr9uJXNu93rPIGmWjuZDfv5Q5fTax8dbUnRsYkqu.webp",
+  },
+  {
+    title: "image 2",
+    image:
+      "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/t45zM1dP2xhepz04fEuVCmF5nhz977jmYWggIUbo.webp",
+  },
+  {
+    title: "image 3",
+    image:
+      "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/o0OOsD6GMannwMEOnXKLAPaxCLA2AIRimnQovscF.webp",
+  },
+  {
+    title: "image 4",
+    image:
+      "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/DeePkQFUUJQW1ndfvDiGkWS9aywZlQwpVoWtzhiv.webp",
+  },
+  {
+    title: "image 5",
+    image:
+      "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/DeePkQFUUJQW1ndfvDiGkWS9aywZlQwpVoWtzhiv.webp",
+  },
+  {
+    title: "image 6",
+    image:
+      "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/LYzWU5uI2HghWUyCZXyyFqQ0bvfFr55ELKEeMuWJ.webp",
+  },
+];
+
+// const widths = computed(
+//   () => [
+//     { key: 0, width: 233 },
+//     { key: 1, width: 118 },
+//     { key: 2, width: 111 },
+//     { key: 3, width: 238 },
+//     { key: 4, width: 257 },
+//     { key: 5, width: 269 },
+//     { key: 6, width: 162 },
+//     { key: 7, width: 293 },
+//     { key: 8, width: 230 },
+//     { key: 9, width: 148 },
+//   ],
+//   // Array.from({ length: 10 }, (_, i) => ({
+//   //   key: i,
+//   //   width: Math.floor(Math.random() * 200 + 100),
+//   // })),
+// );
 </script>

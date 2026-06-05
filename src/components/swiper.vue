@@ -3,16 +3,16 @@
   <div
     class="vls"
     ref="swiper"
-    :style="{ display: 'flex', overflow: 'hidden' }"
+    @mouseenter="props.pauseOnHover && stopAutoPlay()"
+    @mouseleave="props.pauseOnHover && props.autoPlay && startAutoPlay()"
   >
     <!-- Strip -->
     <div
       ref="strip"
-      :class="[
-        'cursor-grab select-none active:cursor-grabbing',
-        mode === 'fixed' ? 'grid grid-flow-col' : 'flex',
-      ]"
+      class="vls-strip"
       :style="{
+        display: mode === 'fixed' ? 'grid' : 'flex',
+        gridAutoFlow: 'column',
         gap: `${gap}px`,
         transform: `translateX(${-xPos}px)`,
         transition: isDragging
@@ -28,7 +28,7 @@
       <!-- Slides -->
       <div
         v-for="(item, index) in displaySlides"
-        class="flex shrink-0 select-none"
+        class="vls-slide"
         ref="slides"
       >
         <slot :item :index />
@@ -54,6 +54,8 @@ const props = withDefaults(
     slides: T[];
     slidesPerSwipe?: number;
     autoPlay?: boolean;
+    autoPlayInterval?: number;
+    pauseOnHover?: boolean;
     loop?: boolean;
     mode?: "fixed" | "auto";
     slideWidth?: number;
@@ -63,6 +65,8 @@ const props = withDefaults(
     slidesPerSwipe: 1,
     mode: "fixed",
     gap: 20,
+    autoPlayInterval: 3000,
+    pauseOnHover: true,
   },
 );
 
@@ -203,6 +207,7 @@ const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
   next,
   goToIndex,
   enabled: () => !!props.autoPlay,
+  interval: props.autoPlayInterval,
 });
 
 onMounted(async () => {
@@ -225,3 +230,27 @@ defineExpose({
   goToIndex,
 });
 </script>
+
+<style scoped>
+.vls {
+  display: flex;
+  overflow: hidden;
+}
+
+.vls-strip {
+  cursor: grab;
+  user-select: none;
+}
+
+.vls-strip:active {
+  cursor: grabbing;
+}
+
+.vls-slide {
+  display: flex;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+  width: 100%;
+}
+</style>
