@@ -20,11 +20,14 @@ permissions:
   id-token: write
   contents: write
   packages: write
+  pull-requests: write
 
 jobs:
   release:
     name: Create a New Release
     runs-on: ubuntu-latest
+    outputs:
+      release_branch: ${{ steps.open_pr.outputs.release_branch }}
 
     steps:
       - name: Checkout
@@ -122,19 +125,39 @@ jobs:
             cat /tmp/changelog_content.md >> CHANGELOG.md
           fi
 
-      - name: Commit changes
+      - name: Create release branch and open PR
+        id: open_pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          RELEASE_BRANCH="release/${{ steps.tag_version.outputs.new_tag }}"
+
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # Add files that were changed
+
+          git checkout -b "$RELEASE_BRANCH"
           git add package.json
           git add CHANGELOG.md
 
-          # Only commit if there are changes
+          # Only commit + push if there are actual changes
           if [ -n "$(git status --porcelain)" ]; then
             git commit -m "chore(release): ${{ steps.tag_version.outputs.new_tag }}"
-            git push --follow-tags origin ${{ github.event.inputs.branch }}
+            git push origin "$RELEASE_BRANCH"
+
+            # Open a PR targeting the original branch (e.g. main)
+            gh pr create \
+              --title "chore(release): ${{ steps.tag_version.outputs.new_tag }}" \
+              --body "${{ steps.changelog.outputs.compareurl }}
+
+          ${{ steps.changelog.outputs.changelog }}" \
+              --base "${{ github.event.inputs.branch }}" \
+              --head "$RELEASE_BRANCH"
+          else
+            echo "No file changes to commit, skipping branch push and PR creation"
           fi
+
+          # Expose the branch name for downstream jobs
+          echo "release_branch=$RELEASE_BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Release App
         uses: ncipollo/release-action@v1
@@ -157,10 +180,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          ref: ${{ github.event.inputs.branch }}
-
-      - name: Pull Latest Changes
-        run: git pull origin ${{ github.event.inputs.branch }}
+          ref: ${{ needs.release.outputs.release_branch }}
 
       - uses: actions/setup-node@v6
         with:
