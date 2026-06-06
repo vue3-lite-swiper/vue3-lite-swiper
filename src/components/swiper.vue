@@ -251,6 +251,5 @@ defineExpose({
   flex-shrink: 0;
   user-select: none;
   pointer-events: none;
-  width: 100%;
 }
 </style>
