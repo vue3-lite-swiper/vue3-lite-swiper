@@ -123,7 +123,7 @@ const preCalc = () => {
 
 const startDragging = (e: MouseEvent | TouchEvent) => {
   isDragging.value = true;
-  lastMouseX = getClientX(e) ?? 0;
+  lastMouseX = getClientX(e);
 
   if (e instanceof MouseEvent) {
     document.addEventListener("mousemove", handleDrag);
@@ -137,7 +137,7 @@ const startDragging = (e: MouseEvent | TouchEvent) => {
 
 const handleDrag = async (e: MouseEvent | TouchEvent) => {
   if (isDragging.value) {
-    const currentMouseX = getClientX(e) ?? 0;
+    const currentMouseX = getClientX(e);
 
     const delta = lastMouseX - currentMouseX;
     if (canLoop.value) {
