@@ -253,7 +253,7 @@ Live demos for every mode are in the [Examples](https://vue3-lite-swiper.vuedoo.
 Use `mode="fixed"` (the default) when all slides share the same width. Snap positions are computed mathematically — no DOM measurement needed. Set `slides-per-swipe` to jump several slides per step (with 8 slides and `slides-per-swipe="3"`, the snap positions are `[0, 3, 6]`).
 
 ```vue
-<Swiper :slides="slides" mode="fixed" :slide-width="220" :gap="16" />
+<Swiper mode="fixed" :slides="slides" :slide-width="220" :gap="16" />
 ```
 
 ### [Auto Mode](https://vue3-lite-swiper.vuedoo.org/examples/auto)
@@ -261,7 +261,7 @@ Use `mode="fixed"` (the default) when all slides share the same width. Snap posi
 Use `mode="auto"` when slides have **different widths**. The component measures each slide after mount using `getBoundingClientRect()` and builds snap positions from those measurements. Omit `slide-width` and size your slides with CSS.
 
 ```vue
-<Swiper :slides="slides" mode="auto" :gap="12" />
+<Swiper mode="auto" :slides="slides" :gap="12" />
 ```
 
 ### [Infinite Loop](https://vue3-lite-swiper.vuedoo.org/examples/loop)
@@ -269,7 +269,7 @@ Use `mode="auto"` when slides have **different widths**. The component measures 
 Enable `loop` to scroll endlessly in both directions. Vue3 Lite Swiper uses **array rotation** — DOM items are moved from one end of the strip to the other — so there is no clone flicker or position jump. The loop requires at least one more slide than fits in the viewport; otherwise it is silently ignored. Compatible with both `fixed` and `auto` modes.
 
 ```vue
-<Swiper :slides="slides" :slide-width="220" :gap="16" loop />
+<Swiper loop :slides="slides" :slide-width="220" :gap="16" />
 ```
 
 ### [Auto Play](https://vue3-lite-swiper.vuedoo.org/examples/autoplay)
@@ -278,11 +278,11 @@ Set `:auto-play="true"` to advance slides automatically. Toggle it reactively to
 
 ```vue
 <Swiper
+  loop
   :slides="slides"
   :slide-width="220"
   :gap="16"
   :auto-play="playing"
-  loop
 />
 ```
 
