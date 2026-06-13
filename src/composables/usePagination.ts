@@ -1,4 +1,5 @@
 import { computed, nextTick, type Ref } from "vue";
+import { getClosestSnapPosition } from "~/utils/snap";
 
 interface UsePaginationOptions {
   xPos: Ref<number>;
@@ -21,48 +22,35 @@ export function usePagination(opts: UsePaginationOptions) {
   });
 
   const next = async () => {
-    for (let attempt = 0; attempt < 4; attempt++) {
-      const { snapPositions: snaps } = opts.swiperCalcs.value;
-      const idx = snaps.findIndex((p) => p === opts.xPos.value);
-      const next = snaps[idx + 1];
+    const { snapPositions, maxPos } = opts.swiperCalcs.value;
+    const target = snapPositions[pagination.value.current + 1];
 
-      if (next === undefined) return;
+    if (target === undefined) return;
 
-      const isLoopBoundary =
-        opts.canLoop.value &&
-        (next === snaps[snaps.length - 1] ||
-          next === opts.swiperCalcs.value.maxPos);
+    const isLoopBoundary =
+      opts.canLoop.value &&
+      (target === snapPositions[snapPositions.length - 1] || target === maxPos);
 
-      if (!isLoopBoundary) {
-        opts.xPos.value = next;
-        return;
-      }
-
-      const s = opts.rotateForward();
-      if (s <= 0) return;
-
-      opts.isDragging.value = true;
-      opts.xPos.value -= s;
-      await nextTick();
-      opts.preCalc();
-      opts.stripRef.value?.getBoundingClientRect();
-
-      const newSnaps = opts.swiperCalcs.value.snapPositions;
-      const newCur = newSnaps.findIndex(
-        (p) => p === Math.round(opts.xPos.value),
-      );
-      const safeNext = newSnaps.slice(newCur + 1, -1)[0];
-
-      if (safeNext !== undefined) {
-        opts.isDragging.value = false;
-        opts.xPos.value = safeNext;
-        return;
-      }
-
-      // penultimate — reposition silently (isDragging still true) and retry
-      opts.xPos.value = newSnaps[newCur] ?? next - s;
-      opts.isDragging.value = false;
+    if (!isLoopBoundary) {
+      opts.xPos.value = target;
+      return;
     }
+
+    const s = opts.rotateForward();
+    if (s <= 0) return;
+
+    opts.isDragging.value = true;
+    opts.xPos.value -= s;
+    await nextTick();
+    opts.preCalc();
+    opts.stripRef.value?.getBoundingClientRect();
+    opts.isDragging.value = false;
+
+    const { snapPositions: snaps, maxPos: max } = opts.swiperCalcs.value;
+    const pos = Math.round(opts.xPos.value);
+    const safeNext = snaps.slice(0, -1).find((p) => p > pos);
+
+    opts.xPos.value = safeNext ?? getClosestSnapPosition(pos, max, snaps);
   };
 
   const previous = () => {
