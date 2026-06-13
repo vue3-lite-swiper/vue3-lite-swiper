@@ -34,7 +34,7 @@ const slides = [
 
 <template>
   <div class="demo">
-    <Swiper ref="swiper" :slides="slides" mode="auto" :gap="12">
+    <Swiper ref="swiper" mode="auto" :slides="slides" :gap="12">
       <template #default="{ item }">
         <div
           class="slide"

@@ -19,21 +19,28 @@ Add the `loop` prop. Everything else works the same.
 import { useTemplateRef } from "vue";
 import { Swiper } from "vue3-lite-swiper";
 
-const swiper = useTemplateRef('swiper')
+const swiper = useTemplateRef("swiper");
 
 const slides = [
-  { label: 'Slide A', color: '#60a5fa' },
-  { label: 'Slide B', color: '#34d399' },
-  { label: 'Slide C', color: '#a78bfa' },
-  { label: 'Slide D', color: '#f87171' },
-  { label: 'Slide E', color: '#fbbf24' },
-  { label: 'Slide F', color: '#e879f9' },
-]
+  { label: "Slide A", color: "#60a5fa" },
+  { label: "Slide B", color: "#34d399" },
+  { label: "Slide C", color: "#a78bfa" },
+  { label: "Slide D", color: "#f87171" },
+  { label: "Slide E", color: "#fbbf24" },
+  { label: "Slide F", color: "#e879f9" },
+];
 </script>
 
 <template>
   <div class="demo">
-    <Swiper ref="swiper" :slides="slides" mode="fixed" :slide-width="220" :gap="16" loop>
+    <Swiper
+      ref="swiper"
+      mode="fixed"
+      loop
+      :slides="slides"
+      :slide-width="220"
+      :gap="16"
+    >
       <template #default="{ item }">
         <div class="slide" :style="{ background: item.color }">
           <span>{{ item.label }}</span>

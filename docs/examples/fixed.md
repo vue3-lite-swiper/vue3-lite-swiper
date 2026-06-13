@@ -37,8 +37,8 @@ const slides = [
   <div class="demo">
     <Swiper
       ref="swiper"
-      :slides="slides"
       mode="fixed"
+      :slides="slides"
       :slide-width="220"
       :gap="16"
     >
@@ -54,8 +54,8 @@ const slides = [
       <div class="dots">
         <button
           v-for="(_, i) in swiper?.pagination.total"
-          :key="i"
           class="dot"
+          :key="i"
           :class="{ active: swiper?.pagination.current === i }"
           @click="swiper?.goToIndex(i)"
         />
