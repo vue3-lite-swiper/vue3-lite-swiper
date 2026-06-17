@@ -9,7 +9,7 @@
       </label>
 
       <Swiper
-        class="swiper h-52 w-180 bg-blue-500 p-2 py-10"
+        class="swiper h-52 w-180 bg-blue-500 py-10"
         ref="mySwiper"
         :auto-play="autoPlayEnabled"
         :auto-play-interval="1000"
@@ -20,7 +20,9 @@
         :loop="true"
       >
         <template #default="{ item }">
-          <img :src="item.image" class="w-full object-fill" />
+          <div class="flex w-full justify-center p-2">
+            <img :src="item.image" class="w-full object-fill" />
+          </div>
         </template>
       </Swiper>
 

@@ -1,9 +1,4 @@
-import {
-  onBeforeUnmount,
-  watch,
-  type ComputedRef,
-  type Ref,
-} from "vue";
+import { onBeforeUnmount, watch, type ComputedRef, type Ref } from "vue";
 
 interface UseAutoPlayOptions {
   enabled: () => boolean;

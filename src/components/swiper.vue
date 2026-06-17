@@ -3,6 +3,7 @@
   <div
     class="vls"
     ref="swiper"
+    :class="{ 'vls--auto': mode === 'auto' }"
     @mouseenter="props.pauseOnHover && stopAutoPlay()"
     @mouseleave="props.pauseOnHover && props.autoPlay && startAutoPlay()"
   >
@@ -15,9 +16,10 @@
         gridAutoFlow: 'column',
         gap: `${gap}px`,
         transform: `translateX(${-xPos}px)`,
-        transition: isDragging
-          ? 'none'
-          : 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
+        transition:
+          isDragging || disableTransition
+            ? 'none'
+            : 'transform 200ms cubic-bezier(0.33, 1, 0.68, 1)',
         ...(mode === 'fixed' && slideWidth !== undefined
           ? { gridAutoColumns: `${slideWidth}px` }
           : {}),
@@ -30,6 +32,11 @@
         v-for="(item, index) in displaySlides"
         class="vls-slide"
         ref="slides"
+        :style="
+          mode === 'auto' && autoSlideWidth
+            ? { width: `${autoSlideWidth}px` }
+            : {}
+        "
       >
         <slot :item :index />
       </div>
@@ -70,8 +77,10 @@ const props = withDefaults(
   },
 );
 
+const autoSlideWidth = ref<number | undefined>(undefined);
 const xPos = ref(0);
 const isDragging = ref(false);
+const disableTransition = ref(false);
 
 const swiperRef = useTemplateRef("swiper");
 const slidesRef = useTemplateRef("slides");
@@ -81,6 +90,7 @@ const {
   displaySlides,
   canLoop,
   rotateForward,
+  rotationCount,
   rotateBackward,
   init: initLoop,
 } = useLoop({
@@ -94,6 +104,7 @@ const {
 });
 
 let lastMouseX = 0;
+let resizeObserver: ResizeObserver | null = null;
 
 const swiperCalcs = ref<{ snapPositions: number[]; maxPos: number }>({
   snapPositions: [0],
@@ -115,13 +126,30 @@ const preCalc = () => {
     );
     return;
   }
+
+  const swiperEl = swiperRef.value;
+  const slideEls = slidesRef.value;
+  if (swiperEl && slideEls) {
+    const swiperRect = swiperEl.getBoundingClientRect();
+    const style = getComputedStyle(swiperEl);
+    const viewportWidth =
+      swiperRect.width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight);
+    for (const slide of slideEls) {
+      slide.style.maxWidth = `${viewportWidth}px`;
+    }
+  }
+
   swiperCalcs.value = getSnapPositions(
     { swiperRef, slidesRef, stripRef },
     props.slidesPerSwipe,
+    xPos.value,
   );
 };
 
 const startDragging = (e: MouseEvent | TouchEvent) => {
+  if (swiperCalcs.value.maxPos <= 0) preCalc();
   isDragging.value = true;
   lastMouseX = getClientX(e);
 
@@ -142,17 +170,19 @@ const handleDrag = async (e: MouseEvent | TouchEvent) => {
     const delta = lastMouseX - currentMouseX;
     if (canLoop.value) {
       const { snapPositions } = swiperCalcs.value;
+      const canRotate =
+        swiperCalcs.value.maxPos > 0 && snapPositions.length > 2;
       const forwardThreshold =
         snapPositions[snapPositions.length - 2] ?? swiperCalcs.value.maxPos;
 
-      if (xPos.value + delta < 0) {
+      if (canRotate && xPos.value + delta < 0) {
         const s = rotateBackward();
         if (s > 0) {
           await nextTick();
           preCalc();
           xPos.value += s;
         }
-      } else if (xPos.value + delta > forwardThreshold) {
+      } else if (canRotate && xPos.value + delta > forwardThreshold) {
         const s = rotateForward();
         if (s > 0) {
           await nextTick();
@@ -160,8 +190,11 @@ const handleDrag = async (e: MouseEvent | TouchEvent) => {
           xPos.value -= s;
         }
       }
+      xPos.value += delta;
+    } else {
+      const { maxPos } = swiperCalcs.value;
+      xPos.value = Math.max(0, Math.min(xPos.value + delta, maxPos));
     }
-    xPos.value += delta;
     lastMouseX = currentMouseX;
   }
 };
@@ -173,6 +206,8 @@ const stopDragging = () => {
     removeAllEventListeners();
     return;
   }
+
+  preCalc();
 
   const { maxPos, snapPositions } = swiperCalcs.value;
 
@@ -194,7 +229,9 @@ const { pagination, next, previous, goToIndex } = usePagination({
   xPos,
   swiperCalcs,
   canLoop,
+  rotationCount,
   isDragging,
+  disableTransition,
   stripRef,
   rotateForward,
   rotateBackward,
@@ -216,11 +253,25 @@ onMounted(async () => {
   await nextTick();
   preCalc();
 
+  if (props.mode === "auto") {
+    autoSlideWidth.value = swiperRef.value?.clientWidth ?? 0; // ✅ not getBoundingClientRect
+  }
+
+  resizeObserver = new ResizeObserver(() => {
+    if (props.mode === "auto") {
+      autoSlideWidth.value = swiperRef.value?.clientWidth ?? 0;
+    }
+    if (isDragging.value) return;
+    preCalc();
+  });
+  if (stripRef.value) resizeObserver.observe(stripRef.value);
+
   if (props.autoPlay) startAutoPlay();
 });
 
 onBeforeUnmount(() => {
   stopAutoPlay();
+  resizeObserver?.disconnect();
 });
 
 defineExpose({
@@ -238,6 +289,7 @@ defineExpose({
 }
 
 .vls-strip {
+  flex-shrink: 0;
   cursor: grab;
   user-select: none;
 }
@@ -249,6 +301,7 @@ defineExpose({
 .vls-slide {
   display: flex;
   flex-shrink: 0;
+  min-width: 0;
   user-select: none;
   pointer-events: none;
 }

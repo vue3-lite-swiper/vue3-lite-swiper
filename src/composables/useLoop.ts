@@ -13,6 +13,7 @@ interface UseLoopOptions<T> {
 export function useLoop<T>(opts: UseLoopOptions<T>) {
   const displaySlides = ref<T[]>([...opts.slides]) as Ref<T[]>;
   const canLoop = ref(false);
+  const rotationCount = ref(0);
 
   const firstSlideStride = (): number => {
     if (opts.mode() === "fixed") {
@@ -37,6 +38,7 @@ export function useLoop<T>(opts: UseLoopOptions<T>) {
     const first = displaySlides.value.shift();
     if (first === undefined) return 0;
     displaySlides.value.push(first);
+    rotationCount.value++;
     return s;
   };
 
@@ -45,6 +47,7 @@ export function useLoop<T>(opts: UseLoopOptions<T>) {
     const last = displaySlides.value.pop();
     if (last === undefined) return 0;
     displaySlides.value.unshift(last);
+    rotationCount.value--;
     return s;
   };
 
@@ -73,22 +76,18 @@ export function useLoop<T>(opts: UseLoopOptions<T>) {
 
     const spv = computeSlidesPerView();
 
-    if (opts.slides.length < spv) {
-      // not enough slides to loop visually — keep canLoop false
-    } else if (opts.slides.length <= spv + 1) {
-      displaySlides.value = [
-        ...opts.slides,
-        ...opts.slides.slice(0, spv),
-      ];
-      canLoop.value = true;
-    } else {
-      canLoop.value = true;
+    if (opts.slides.length <= spv) {
+      // not enough slides to scroll/rotate — keep canLoop false
+      return;
     }
+
+    canLoop.value = true;
   };
 
   return {
     displaySlides,
     canLoop,
+    rotationCount,
     firstSlideStride,
     lastSlideStride,
     rotateForward,

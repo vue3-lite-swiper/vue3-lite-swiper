@@ -1,11 +1,12 @@
 import { computed, nextTick, type Ref } from "vue";
-import { getClosestSnapPosition } from "~/utils/snap";
 
 interface UsePaginationOptions {
   xPos: Ref<number>;
   swiperCalcs: Ref<{ snapPositions: number[]; maxPos: number }>;
   canLoop: Ref<boolean>;
+  rotationCount: Ref<number>; // NEW
   isDragging: Ref<boolean>;
+  disableTransition: Ref<boolean>;
   stripRef: Readonly<Ref<HTMLElement | null>>;
   rotateForward: () => number;
   rotateBackward: () => number;
@@ -15,47 +16,95 @@ interface UsePaginationOptions {
 export function usePagination(opts: UsePaginationOptions) {
   const pagination = computed(() => {
     const { snapPositions } = opts.swiperCalcs.value;
-    return {
-      current: snapPositions.findIndex((item) => item === opts.xPos.value),
-      total: snapPositions.length,
-    };
+    const x = opts.xPos.value;
+
+    let snap = snapPositions[0];
+    for (const p of snapPositions) {
+      if (p <= x) snap = p;
+    }
+    const raw = snapPositions.indexOf(snap);
+    const idx = raw >= 0 ? raw : 0;
+    const total = snapPositions.length;
+
+    if (!opts.canLoop.value) {
+      return { current: idx, total };
+    }
+
+    // "Un-rotate" idx back to the logical slide position
+    const current =
+      (((idx + opts.rotationCount.value) % total) + total) % total;
+    return { current, total };
   });
 
+  let isRotating = false;
+
   const next = async () => {
+    if (isRotating) return;
+    if (opts.swiperCalcs.value.maxPos <= 0) opts.preCalc();
     const { snapPositions, maxPos } = opts.swiperCalcs.value;
-    const target = snapPositions[pagination.value.current + 1];
 
-    if (target === undefined) return;
-
-    const isLoopBoundary =
-      opts.canLoop.value &&
-      (target === snapPositions[snapPositions.length - 1] || target === maxPos);
-
-    if (!isLoopBoundary) {
-      opts.xPos.value = target;
+    if (opts.canLoop.value && opts.xPos.value >= maxPos) {
+      isRotating = true;
+      try {
+        const s = opts.rotateForward();
+        if (s > 0) {
+          opts.disableTransition.value = true;
+          opts.xPos.value -= s;
+          await nextTick();
+          opts.preCalc();
+          await nextTick();
+          opts.disableTransition.value = false;
+        }
+        opts.xPos.value = opts.swiperCalcs.value.maxPos;
+      } finally {
+        isRotating = false;
+      }
       return;
     }
 
-    const s = opts.rotateForward();
-    if (s <= 0) return;
+    const idxNow = snapPositions.indexOf(
+      snapPositions.filter((p) => p <= opts.xPos.value).at(-1) ??
+        snapPositions[0],
+    );
+    const target = snapPositions[idxNow + 1];
 
-    opts.isDragging.value = true;
-    opts.xPos.value -= s;
-    await nextTick();
-    opts.preCalc();
-    opts.stripRef.value?.getBoundingClientRect();
-    opts.isDragging.value = false;
-
-    const { snapPositions: snaps, maxPos: max } = opts.swiperCalcs.value;
-    const pos = Math.round(opts.xPos.value);
-    const safeNext = snaps.slice(0, -1).find((p) => p > pos);
-
-    opts.xPos.value = safeNext ?? getClosestSnapPosition(pos, max, snaps);
+    if (target === undefined) {
+      if (!opts.canLoop.value) return;
+      opts.xPos.value = maxPos;
+      return;
+    }
+    opts.xPos.value = target;
   };
 
-  const previous = () => {
+  const previous = async () => {
+    if (isRotating) return;
+    if (opts.swiperCalcs.value.maxPos <= 0) opts.preCalc();
     const { snapPositions } = opts.swiperCalcs.value;
-    const prevPos = snapPositions?.[pagination.value.current - 1];
+
+    if (opts.canLoop.value && opts.xPos.value <= 0) {
+      isRotating = true;
+      try {
+        const s = opts.rotateBackward();
+        if (s > 0) {
+          opts.disableTransition.value = true;
+          opts.xPos.value += s;
+          await nextTick();
+          opts.preCalc();
+          await nextTick();
+          opts.disableTransition.value = false;
+        }
+        opts.xPos.value = 0;
+      } finally {
+        isRotating = false;
+      }
+      return;
+    }
+
+    const idxNow = snapPositions.indexOf(
+      snapPositions.filter((p) => p <= opts.xPos.value).at(-1) ??
+        snapPositions[0],
+    );
+    const prevPos = snapPositions[idxNow - 1];
 
     if (prevPos !== undefined) {
       opts.xPos.value = prevPos;
@@ -63,23 +112,26 @@ export function usePagination(opts: UsePaginationOptions) {
     }
 
     if (!opts.canLoop.value) return;
-
-    const s = opts.rotateBackward();
-    if (s === 0) return;
-
-    opts.isDragging.value = true;
-    opts.xPos.value += s;
-    nextTick(() => {
-      opts.preCalc();
-      opts.stripRef.value?.getBoundingClientRect();
-      opts.isDragging.value = false;
-      opts.xPos.value -= s;
-    });
+    opts.xPos.value = opts.swiperCalcs.value.maxPos;
   };
 
   const goToIndex = (index: number) => {
     const { snapPositions } = opts.swiperCalcs.value;
-    const pos = snapPositions?.[index];
+    const total = snapPositions.length;
+
+    if (opts.canLoop.value) {
+      // Convert logical index back to a raw snapPositions index
+      const rawIdx =
+        (((index - opts.rotationCount.value) % total) + total) % total;
+      const pos = snapPositions[rawIdx];
+      if (pos !== undefined) {
+        opts.xPos.value = pos;
+        return;
+      }
+      throw new Error(`index [${index}] is out of bound`);
+    }
+
+    const pos = snapPositions[index];
     if (pos !== undefined) {
       opts.xPos.value = pos;
     } else {
