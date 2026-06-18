@@ -95,6 +95,7 @@ const {
 
 let lastMouseX = 0;
 let dragStartIndex = 0;
+let resizeObserver: ResizeObserver | null = null;
 
 const swiperCalcs = ref<{ snapPositions: number[]; maxPos: number }>({
   snapPositions: [0],
@@ -228,11 +229,18 @@ onMounted(async () => {
   await nextTick();
   preCalc();
 
+  resizeObserver = new ResizeObserver(() => {
+    if (isDragging.value) return;
+    preCalc();
+  });
+  if (stripRef.value) resizeObserver.observe(stripRef.value);
+
   if (props.autoPlay) startAutoPlay();
 });
 
 onBeforeUnmount(() => {
   stopAutoPlay();
+  resizeObserver?.disconnect();
 });
 
 defineExpose({
