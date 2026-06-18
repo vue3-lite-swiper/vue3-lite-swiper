@@ -10,7 +10,6 @@ type SwiperRefs = {
 
 type FixedSwiperRefs = {
   swiperRef: Readonly<ShallowRef<HTMLDivElement | null, HTMLDivElement | null>>;
-  stripRef: Readonly<ShallowRef<HTMLDivElement | null, HTMLDivElement | null>>;
 };
 
 export function getFixedSnapPositions(
@@ -18,27 +17,38 @@ export function getFixedSnapPositions(
   slideCount: number,
   slideWidth: number,
   slidesPerSwipe: number,
+  gap: number,
 ) {
-  const { swiperRef, stripRef } = swiperRefs;
+  const { swiperRef } = swiperRefs;
 
-  if (!swiperRef.value || !stripRef.value || slideCount === 0) {
+  if (!swiperRef.value || slideCount === 0) {
     return { snapPositions: [0], maxPos: 0 };
   }
 
-  const swiperWidth = swiperRef.value.getBoundingClientRect().width;
-  const gap = parseFloat(getComputedStyle(stripRef.value).columnGap) || 0;
+  const swiperRect = swiperRef.value.getBoundingClientRect();
+  const swiperStyle = getComputedStyle(swiperRef.value);
+  const viewportWidth =
+    swiperRect.width -
+    parseFloat(swiperStyle.paddingLeft) -
+    parseFloat(swiperStyle.paddingRight);
 
   const stripWidth =
     slideCount * slideWidth + Math.max(0, slideCount - 1) * gap;
-  const maxPos = Math.max(0, Math.round(stripWidth - swiperWidth));
+  const maxPos = Math.max(0, Math.round(stripWidth - viewportWidth));
   const stride = slideWidth + gap;
 
   const snapPositions: number[] = [0];
   for (let i = slidesPerSwipe; i < slideCount; i += slidesPerSwipe) {
     const pos = Math.round(i * stride);
-    if (pos < maxPos) snapPositions.push(pos);
+    //  use <= maxPos (not < maxPos) so the last stride-aligned
+    // snap is included, then we add maxPos only if it's truly different
+    if (pos <= maxPos) snapPositions.push(pos);
   }
-  snapPositions.push(maxPos);
+
+  // push maxPos if it's not already the last entry
+  if (snapPositions[snapPositions.length - 1] !== maxPos) {
+    snapPositions.push(maxPos);
+  }
 
   return { snapPositions, maxPos };
 }
@@ -46,53 +56,52 @@ export function getFixedSnapPositions(
 export function getSnapPositions(
   swiperRefs: SwiperRefs,
   slidesPerSwipe: number,
+  currentXPos: number,
 ) {
   const { slidesRef, stripRef, swiperRef } = swiperRefs;
 
   if (!slidesRef.value || !stripRef.value || !swiperRef.value) {
-    console.error("one of the swiper refs are undefined", {
-      slidesRef: slidesRef.value,
-      stripRef: stripRef.value,
-      swiperRef: swiperRef.value,
-    });
     return { snapPositions: [0], maxPos: 0 };
   }
 
-  // Compute absolute left positions of each slide relative to the strip's start
-  // Since getBoundingClientRect() is relative to viewport, we need a common reference.
-  // We'll use the first slide's x as origin (or strip's x if available)
-
-  const stripLeft = slidesRef.value[0]?.getBoundingClientRect().x ?? 0;
-
   const swiperViewRect = swiperRef.value.getBoundingClientRect();
+  const swiperStyle = getComputedStyle(swiperRef.value);
+  const paddingLeft = parseFloat(swiperStyle.paddingLeft) || 0;
+  const paddingRight = parseFloat(swiperStyle.paddingRight) || 0;
+  const viewportWidth = swiperViewRect.width - paddingLeft - paddingRight;
   const stripRect = stripRef.value.getBoundingClientRect();
 
-  // Build array of actual scroll offsets where each slide starts
-  const slideScrollOffsets = slidesRef.value.map((slide) =>
-    Math.round(slide.getBoundingClientRect().x - stripLeft),
-  );
+  // Content-box origin: the strip starts after the swiper's left padding when
+  // xPos = 0. swiperRef.left is stable; strip.left shifts with translation.
+  const swiperLeft = swiperViewRect.left + paddingLeft;
 
-  // Determine valid snap positions: every `slidesPerSwipe`-th slide
+  const slideScrollOffsets = slidesRef.value.map((slide) => {
+    const slideRect = slide.getBoundingClientRect();
+    // slideRect.left - swiperLeft = visual offset from the content-box edge
+    // + currentXPos corrects for current translation
+    return Math.round(slideRect.left - swiperLeft + currentXPos);
+  });
+
+  const maxPos = Math.max(0, Math.round(stripRect.width - viewportWidth));
+
   const snapPositions: number[] = [0];
-  // Also allow snapping to the end if needed (optional but safe)
-  const maxPos = Math.max(
-    0,
-    Math.round((stripRect?.width ?? 0) - (swiperViewRect?.width ?? 0)),
-  );
 
-  for (let i = 0; i < slideScrollOffsets.length - 1; i += slidesPerSwipe) {
+  for (
+    let i = slidesPerSwipe;
+    i < slideScrollOffsets.length;
+    i += slidesPerSwipe
+  ) {
     const pos = slideScrollOffsets[i];
-    if (pos && pos < maxPos) {
+    if (pos > 0 && pos < maxPos) {
       snapPositions.push(pos);
     }
   }
 
-  snapPositions.push(maxPos);
+  if (snapPositions[snapPositions.length - 1] !== maxPos && maxPos > 0) {
+    snapPositions.push(maxPos);
+  }
 
-  return {
-    snapPositions,
-    maxPos,
-  };
+  return { snapPositions, maxPos };
 }
 
 export function getClosestSnapPosition(

@@ -109,16 +109,18 @@ const preCalc = () => {
       return;
     }
     swiperCalcs.value = getFixedSnapPositions(
-      { swiperRef, stripRef },
+      { swiperRef },
       displaySlides.value.length,
       props.slideWidth,
       props.slidesPerSwipe,
+      props.gap,
     );
     return;
   }
   swiperCalcs.value = getSnapPositions(
     { swiperRef, slidesRef, stripRef },
     props.slidesPerSwipe,
+    xPos.value,
   );
 };
 
