@@ -45,7 +45,7 @@ const swiper = useTemplateRef("swiper");
   <div class="controls">
     <button @click="swiper?.previous()">← Prev</button>
     <button
-      v-for="(_, i) in swiper?.pagination.total"
+      v-for="(_, i) in swiper?.total"
       :key="i"
       @click="swiper?.goToIndex(i)"
     >

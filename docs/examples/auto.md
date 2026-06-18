@@ -42,8 +42,8 @@ const swiper = useTemplateRef("swiper");
   <div class="controls">
     <button @click="swiper?.previous()">← Prev</button>
     <span
-      >{{ (swiper?.pagination.current ?? 0) + 1 }} /
-      {{ swiper?.pagination.total }}</span
+      >{{ (swiper?.current ?? 0) + 1 }} /
+      {{ swiper?.total }}</span
     >
     <button @click="swiper?.next()">Next →</button>
   </div>

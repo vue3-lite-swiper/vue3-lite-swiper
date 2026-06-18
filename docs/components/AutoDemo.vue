@@ -14,8 +14,8 @@
     <div class="controls">
       <button class="btn" @click="swiper?.previous()">← Prev</button>
       <span class="counter">
-        {{ (swiper?.pagination.current ?? 0) + 1 }} /
-        {{ swiper?.pagination.total }}
+        {{ (swiper?.current ?? 0) + 1 }} /
+        {{ swiper?.total }}
       </span>
       <button class="btn" @click="swiper?.next()">Next →</button>
     </div>
