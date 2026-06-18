@@ -1,4 +1,4 @@
-import { computed, nextTick, type Ref } from "vue";
+import { computed, nextTick, ref, type Ref } from "vue";
 import { getClosestSnapPosition } from "~/utils/snap";
 
 interface UsePaginationOptions {
@@ -13,17 +13,23 @@ interface UsePaginationOptions {
 }
 
 export function usePagination(opts: UsePaginationOptions) {
-  const pagination = computed(() => {
-    const { snapPositions } = opts.swiperCalcs.value;
-    return {
-      current: snapPositions.findIndex((item) => item === opts.xPos.value),
-      total: snapPositions.length,
-    };
+  const _current = ref(0);
+  const current = computed({
+    get: () => _current.value,
+    set: (n) => {
+      _current.value = ((n % total.value) + total.value) % total.value;
+    },
   });
+  const total = computed(() => opts.swiperCalcs.value.snapPositions.length);
+
+  const getSnapPosIndex = () =>
+    opts.swiperCalcs.value.snapPositions.findIndex(
+      (p) => p === opts.xPos.value,
+    );
 
   const next = async () => {
     const { snapPositions, maxPos } = opts.swiperCalcs.value;
-    const target = snapPositions[pagination.value.current + 1];
+    const target = snapPositions[getSnapPosIndex() + 1];
 
     if (target === undefined) return;
 
@@ -33,6 +39,7 @@ export function usePagination(opts: UsePaginationOptions) {
 
     if (!isLoopBoundary) {
       opts.xPos.value = target;
+      current.value += 1;
       return;
     }
 
@@ -51,14 +58,16 @@ export function usePagination(opts: UsePaginationOptions) {
     const safeNext = snaps.slice(0, -1).find((p) => p > pos);
 
     opts.xPos.value = safeNext ?? getClosestSnapPosition(pos, max, snaps);
+    current.value += 1;
   };
 
   const previous = () => {
     const { snapPositions } = opts.swiperCalcs.value;
-    const prevPos = snapPositions?.[pagination.value.current - 1];
+    const prevPos = snapPositions?.[getSnapPosIndex() - 1];
 
     if (prevPos !== undefined) {
       opts.xPos.value = prevPos;
+      current.value -= 1;
       return;
     }
 
@@ -69,6 +78,7 @@ export function usePagination(opts: UsePaginationOptions) {
 
     opts.isDragging.value = true;
     opts.xPos.value += s;
+    current.value -= 1;
     nextTick(() => {
       opts.preCalc();
       opts.stripRef.value?.getBoundingClientRect();
@@ -82,13 +92,15 @@ export function usePagination(opts: UsePaginationOptions) {
     const pos = snapPositions?.[index];
     if (pos !== undefined) {
       opts.xPos.value = pos;
+      current.value = index;
     } else {
       throw new Error(`index [${index}] is out of bound`);
     }
   };
 
   return {
-    pagination,
+    current,
+    total,
     next,
     previous,
     goToIndex,

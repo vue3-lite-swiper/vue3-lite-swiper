@@ -32,9 +32,9 @@
       <div v-if="mySwiperRef" class="flex gap-2">
         <div
           class="aspect-square h-4 w-4 cursor-pointer rounded-full"
-          v-for="index in mySwiperRef.pagination.total"
+          v-for="index in mySwiperRef.total"
           :class="
-            index - 1 === mySwiperRef.pagination.current
+            index - 1 === mySwiperRef.current
               ? 'bg-blue-400'
               : 'bg-gray-200'
           "

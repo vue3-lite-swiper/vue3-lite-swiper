@@ -94,6 +94,7 @@ const {
 });
 
 let lastMouseX = 0;
+let dragStartIndex = 0;
 
 const swiperCalcs = ref<{ snapPositions: number[]; maxPos: number }>({
   snapPositions: [0],
@@ -124,6 +125,9 @@ const preCalc = () => {
 const startDragging = (e: MouseEvent | TouchEvent) => {
   isDragging.value = true;
   lastMouseX = getClientX(e);
+  dragStartIndex = swiperCalcs.value.snapPositions.findIndex(
+    (p) => p === xPos.value,
+  );
 
   if (e instanceof MouseEvent) {
     document.addEventListener("mousemove", handleDrag);
@@ -178,6 +182,11 @@ const stopDragging = () => {
 
   xPos.value = getClosestSnapPosition(xPos.value, maxPos, snapPositions);
 
+  const endIndex = snapPositions.findIndex((p) => p === xPos.value);
+  if (dragStartIndex !== -1 && endIndex !== -1) {
+    current.value += endIndex - dragStartIndex;
+  }
+
   isDragging.value = false;
   removeAllEventListeners();
 };
@@ -190,7 +199,7 @@ const removeAllEventListeners = () => {
   document.removeEventListener("touchcancel", stopDragging);
 };
 
-const { pagination, next, previous, goToIndex } = usePagination({
+const { current, total, next, previous, goToIndex } = usePagination({
   xPos,
   swiperCalcs,
   canLoop,
@@ -203,7 +212,8 @@ const { pagination, next, previous, goToIndex } = usePagination({
 
 const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
   canLoop,
-  pagination,
+  current,
+  total,
   next,
   goToIndex,
   enabled: () => !!props.autoPlay,
@@ -224,7 +234,8 @@ onBeforeUnmount(() => {
 });
 
 defineExpose({
-  pagination,
+  current,
+  total,
   next,
   previous,
   goToIndex,
