@@ -89,12 +89,17 @@ export function usePagination(opts: UsePaginationOptions) {
 
   const goToIndex = (index: number) => {
     const { snapPositions } = opts.swiperCalcs.value;
-    const pos = snapPositions?.[index];
-    if (pos !== undefined) {
-      opts.xPos.value = pos;
+
+    if (opts.canLoop.value && index === snapPositions.length - 1 && index > 0) {
+      opts.rotateForward();
+      opts.xPos.value = snapPositions[index - 1];
       current.value = index;
     } else {
-      throw new Error(`index [${index}] is out of bound`);
+      const pos = snapPositions?.[index];
+      if (pos !== undefined) {
+        opts.xPos.value = pos;
+        current.value = index;
+      }
     }
   };
 
