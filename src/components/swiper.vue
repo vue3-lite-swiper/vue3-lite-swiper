@@ -27,11 +27,12 @@
     >
       <!-- Slides -->
       <div
-        v-for="(item, index) in displaySlides"
+        v-for="(entry, index) in displaySlides"
+        :key="entry.order"
         class="vls-slide"
         ref="slides"
       >
-        <slot :item :index />
+        <slot :item="entry.item" :index="entry.order" />
       </div>
     </div>
   </div>
@@ -116,13 +117,36 @@ const preCalc = () => {
       props.slidesPerSwipe,
       props.gap,
     );
-    return;
+  } else {
+    swiperCalcs.value = getSnapPositions(
+      { swiperRef, slidesRef, stripRef },
+      props.slidesPerSwipe,
+      xPos.value,
+    );
   }
-  swiperCalcs.value = getSnapPositions(
-    { swiperRef, slidesRef, stripRef },
-    props.slidesPerSwipe,
-    xPos.value,
-  );
+
+  const snaps = swiperCalcs.value.snapPositions;
+  const op: Record<number, number> = {};
+  if (snaps.length === 0) return;
+  if (props.mode === "fixed" && props.slideWidth !== undefined) {
+    const stride = props.slideWidth + props.gap;
+    displaySlides.value.forEach((entry, visualIdx) => {
+      const visualPos = Math.round(visualIdx * stride);
+      const snap = snaps.reduce((closest, p) =>
+        Math.abs(p - visualPos) < Math.abs(closest - visualPos) ? p : closest,
+      );
+      op[entry.order] = snap;
+    });
+  } else {
+    displaySlides.value.forEach((entry, visualIdx) => {
+      const snapIdx = Math.min(
+        Math.floor(visualIdx / props.slidesPerSwipe),
+        snaps.length - 1,
+      );
+      op[entry.order] = snaps[snapIdx];
+    });
+  }
+  orderPositions.value = op;
 };
 
 const startDragging = (e: MouseEvent | TouchEvent) => {
@@ -186,8 +210,9 @@ const stopDragging = () => {
   xPos.value = getClosestSnapPosition(xPos.value, maxPos, snapPositions);
 
   const endIndex = snapPositions.findIndex((p) => p === xPos.value);
-  if (dragStartIndex !== -1 && endIndex !== -1) {
-    current.value += endIndex - dragStartIndex;
+  if (endIndex !== -1) {
+    const entry = displaySlides.value[endIndex];
+    if (entry) current.value = entry.order;
   }
 
   isDragging.value = false;
@@ -202,9 +227,13 @@ const removeAllEventListeners = () => {
   document.removeEventListener("touchcancel", stopDragging);
 };
 
+const orderPositions = ref<Record<number, number>>({});
+
 const { current, total, next, previous, goToIndex } = usePagination({
   xPos,
   swiperCalcs,
+  orderPositions,
+  displaySlides,
   canLoop,
   isDragging,
   stripRef,
