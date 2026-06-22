@@ -1,5 +1,10 @@
 import { ref, type Ref } from "vue";
 
+export interface SlideEntry<T> {
+  order: number;
+  item: T;
+}
+
 interface UseLoopOptions<T> {
   slides: T[];
   loop: boolean;
@@ -11,7 +16,10 @@ interface UseLoopOptions<T> {
 }
 
 export function useLoop<T>(opts: UseLoopOptions<T>) {
-  const displaySlides = ref<T[]>([...opts.slides]) as Ref<T[]>;
+  const wrapSlides = (items: T[], offset = 0): SlideEntry<T>[] =>
+    items.map((item, i) => ({ order: offset + i, item }));
+
+  const displaySlides = ref<SlideEntry<T>[]>(wrapSlides(opts.slides));
   const canLoop = ref(false);
 
   const firstSlideStride = (): number => {
@@ -77,11 +85,12 @@ export function useLoop<T>(opts: UseLoopOptions<T>) {
       // not enough slides to loop visually — keep canLoop false
     } else if (opts.slides.length <= spv + 1) {
       displaySlides.value = [
-        ...opts.slides,
-        ...opts.slides.slice(0, spv),
+        ...wrapSlides(opts.slides),
+        ...wrapSlides(opts.slides.slice(0, spv), 0),
       ];
       canLoop.value = true;
     } else {
+      displaySlides.value = wrapSlides(opts.slides);
       canLoop.value = true;
     }
   };
