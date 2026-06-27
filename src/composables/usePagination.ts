@@ -4,6 +4,8 @@ import { getClosestSnapPosition } from "~/utils/snap";
 interface UsePaginationOptions {
   xPos: Ref<number>;
   swiperCalcs: Ref<{ snapPositions: number[]; maxPos: number }>;
+  orderPositions: Ref<Record<number, number>>;
+  displaySlides: Ref<Array<{ order: number }>>;
   canLoop: Ref<boolean>;
   isDragging: Ref<boolean>;
   stripRef: Readonly<Ref<HTMLElement | null>>;
@@ -13,14 +15,29 @@ interface UsePaginationOptions {
 }
 
 export function usePagination(opts: UsePaginationOptions) {
+  const total = computed(() =>
+    opts.orderPositions.value
+      ? Object.keys(opts.orderPositions.value).length
+      : opts.swiperCalcs.value.snapPositions.length,
+  );
   const _current = ref(0);
   const current = computed({
     get: () => _current.value,
     set: (n) => {
-      _current.value = ((n % total.value) + total.value) % total.value;
+      const t = total.value;
+      _current.value = t > 0 ? ((n % t) + t) % t : 0;
     },
   });
-  const total = computed(() => opts.swiperCalcs.value.snapPositions.length);
+
+  const setCurrentFromXPos = () => {
+    const visualIdx = opts.swiperCalcs.value.snapPositions.findIndex(
+      (p) => p === opts.xPos.value,
+    );
+    if (visualIdx !== -1) {
+      const entry = opts.displaySlides.value[visualIdx];
+      if (entry) _current.value = entry.order;
+    }
+  };
 
   const getSnapPosIndex = () =>
     opts.swiperCalcs.value.snapPositions.findIndex(
@@ -29,7 +46,8 @@ export function usePagination(opts: UsePaginationOptions) {
 
   const next = async () => {
     const { snapPositions, maxPos } = opts.swiperCalcs.value;
-    const target = snapPositions[getSnapPosIndex() + 1];
+    const currentIdx = getSnapPosIndex();
+    const target = snapPositions[currentIdx + 1];
 
     if (target === undefined) return;
 
@@ -39,7 +57,8 @@ export function usePagination(opts: UsePaginationOptions) {
 
     if (!isLoopBoundary) {
       opts.xPos.value = target;
-      current.value += 1;
+      const nextOrder = opts.displaySlides.value[currentIdx + 1]?.order;
+      if (nextOrder !== undefined) _current.value = nextOrder;
       return;
     }
 
@@ -58,16 +77,18 @@ export function usePagination(opts: UsePaginationOptions) {
     const safeNext = snaps.slice(0, -1).find((p) => p > pos);
 
     opts.xPos.value = safeNext ?? getClosestSnapPosition(pos, max, snaps);
-    current.value += 1;
+    setCurrentFromXPos();
   };
 
   const previous = () => {
     const { snapPositions } = opts.swiperCalcs.value;
-    const prevPos = snapPositions?.[getSnapPosIndex() - 1];
+    const currentIdx = getSnapPosIndex();
+    const prevPos = snapPositions?.[currentIdx - 1];
 
     if (prevPos !== undefined) {
       opts.xPos.value = prevPos;
-      current.value -= 1;
+      const prevOrder = opts.displaySlides.value[currentIdx - 1]?.order;
+      if (prevOrder !== undefined) _current.value = prevOrder;
       return;
     }
 
@@ -78,23 +99,20 @@ export function usePagination(opts: UsePaginationOptions) {
 
     opts.isDragging.value = true;
     opts.xPos.value += s;
-    current.value -= 1;
     nextTick(() => {
       opts.preCalc();
       opts.stripRef.value?.getBoundingClientRect();
       opts.isDragging.value = false;
       opts.xPos.value -= s;
+      setCurrentFromXPos();
     });
   };
 
   const goToIndex = (index: number) => {
-    const { snapPositions } = opts.swiperCalcs.value;
-    const pos = snapPositions?.[index];
+    const pos = opts.orderPositions.value[index];
     if (pos !== undefined) {
       opts.xPos.value = pos;
-      current.value = index;
-    } else {
-      throw new Error(`index [${index}] is out of bound`);
+      _current.value = index;
     }
   };
 
