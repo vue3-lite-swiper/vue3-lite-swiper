@@ -69,7 +69,10 @@ export function getSnapPositions(
   const paddingLeft = parseFloat(swiperStyle.paddingLeft) || 0;
   const paddingRight = parseFloat(swiperStyle.paddingRight) || 0;
   const viewportWidth = swiperViewRect.width - paddingLeft - paddingRight;
-  const stripRect = stripRef.value.getBoundingClientRect();
+  // The strip is a flex container clamped to the overflow:hidden viewport, so
+  // its border-box width equals the viewport — the slides overflow it. Use
+  // scrollWidth to get the true content extent (slides + gaps).
+  const stripWidth = stripRef.value.scrollWidth;
 
   // Content-box origin: the strip starts after the swiper's left padding when
   // xPos = 0. swiperRef.left is stable; strip.left shifts with translation.
@@ -82,7 +85,7 @@ export function getSnapPositions(
     return Math.round(slideRect.left - swiperLeft + currentXPos);
   });
 
-  const maxPos = Math.max(0, Math.round(stripRect.width - viewportWidth));
+  const maxPos = Math.max(0, Math.round(stripWidth - viewportWidth));
 
   const snapPositions: number[] = [0];
 

@@ -15,8 +15,7 @@
         :auto-play-interval="1000"
         :slides="banner"
         :pause-on-hover="false"
-        mode="fixed"
-        :slide-width="720"
+        mode="auto"
         :loop="true"
       >
         <template #default="{ item }">
@@ -34,9 +33,7 @@
           class="aspect-square h-4 w-4 cursor-pointer rounded-full"
           v-for="index in mySwiperRef.total"
           :class="
-            index - 1 === mySwiperRef.current
-              ? 'bg-blue-400'
-              : 'bg-gray-200'
+            index - 1 === mySwiperRef.current ? 'bg-blue-400' : 'bg-gray-200'
           "
           @click="mySwiperRef?.goToIndex(index - 1)"
         ></div>
@@ -44,13 +41,6 @@
     </div>
   </div>
 </template>
-
-<!-- This is when mode is auto  -->
-<style scoped>
-.swiper:deep(.vls-swiper) {
-  width: 100%;
-}
-</style>
 
 <script setup lang="ts">
 import { ref, useTemplateRef } from "vue";
@@ -62,31 +52,37 @@ const mySwiperRef = useTemplateRef("mySwiper");
 const banner = [
   {
     title: "image 1",
+    // width: `${Math.random() * 200 + 50}px`,
     image:
       "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/zr9uJXNu93rPIGmWjuZDfv5Q5fTax8dbUnRsYkqu.webp",
   },
   {
     title: "image 2",
+    // width: `${Math.random() * 200 + 50}px`,
     image:
       "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/t45zM1dP2xhepz04fEuVCmF5nhz977jmYWggIUbo.webp",
   },
   {
     title: "image 3",
+    // width: `${Math.random() * 200 + 50}px`,
     image:
       "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/o0OOsD6GMannwMEOnXKLAPaxCLA2AIRimnQovscF.webp",
   },
   {
     title: "image 4",
+    // width: `${Math.random() * 200 + 50}px`,
     image:
       "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/DeePkQFUUJQW1ndfvDiGkWS9aywZlQwpVoWtzhiv.webp",
   },
   {
     title: "image 5",
+    // width: `${Math.random() * 200 + 50}px`,
     image:
       "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/DeePkQFUUJQW1ndfvDiGkWS9aywZlQwpVoWtzhiv.webp",
   },
   {
     title: "image 6",
+    // width: `${Math.random() * 200 + 50}px`,
     image:
       "https://fls-9fc5decb-6fec-45e8-944c-e52706d9c0af.laravel.cloud/uploads/LYzWU5uI2HghWUyCZXyyFqQ0bvfFr55ELKEeMuWJ.webp",
   },

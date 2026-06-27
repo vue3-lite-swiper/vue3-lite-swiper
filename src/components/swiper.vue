@@ -288,6 +288,8 @@ defineExpose({
 }
 
 .vls-strip {
+  width: max-content;
+  flex-shrink: 0;
   cursor: grab;
   user-select: none;
 }
