@@ -72,11 +72,15 @@ export function usePagination(opts: UsePaginationOptions) {
     opts.stripRef.value?.getBoundingClientRect();
     opts.isDragging.value = false;
 
+    // One slide rotated off the front, so the slide we wanted to advance to
+    // now sits at `currentIdx` — and its snap is no longer clamped to maxPos,
+    // so we can land on it cleanly instead of bouncing back.
     const { snapPositions: snaps, maxPos: max } = opts.swiperCalcs.value;
-    const pos = Math.round(opts.xPos.value);
-    const safeNext = snaps.slice(0, -1).find((p) => p > pos);
+    const advanced = snaps[currentIdx];
 
-    opts.xPos.value = safeNext ?? getClosestSnapPosition(pos, max, snaps);
+    opts.xPos.value =
+      advanced ??
+      getClosestSnapPosition(Math.round(opts.xPos.value), max, snaps);
     setCurrentFromXPos();
   };
 

@@ -27,8 +27,8 @@
     >
       <!-- Slides -->
       <div
-        v-for="(entry, index) in displaySlides"
-        :key="entry.order"
+        v-for="entry in displaySlides"
+        :key="entry.id"
         class="vls-slide"
         ref="slides"
       >
@@ -91,12 +91,42 @@ const {
   slideWidth: () => props.slideWidth,
   gap: () => props.gap,
   swiperRef,
-  slidesRef,
+  stripRef,
 });
 
 let lastMouseX = 0;
-let dragStartIndex = 0;
 let resizeObserver: ResizeObserver | null = null;
+
+// In "auto" mode the loop buffer decision depends on measured slide widths.
+// Until content (e.g. images) has laid out, those measure as 0 and wrongly
+// trip the buffer branch, so we defer finalizing the loop until sizes are real.
+const slidesMeasurable = () => {
+  if (props.mode === "fixed") return true;
+  const slides = slidesRef.value;
+  return (
+    !!slides &&
+    slides.length > 0 &&
+    slides.every((s) => s.getBoundingClientRect().width > 0)
+  );
+};
+
+// Resolves once slides have a measurable width, or after a fallback delay so a
+// slow/broken image can never stall setup indefinitely.
+const whenMeasurable = () =>
+  new Promise<void>((resolve) => {
+    if (slidesMeasurable()) return resolve();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      ro.disconnect();
+      clearTimeout(timer);
+      resolve();
+    };
+    const ro = new ResizeObserver(() => slidesMeasurable() && finish());
+    if (stripRef.value) ro.observe(stripRef.value);
+    const timer = setTimeout(finish, 1000);
+  });
 
 const swiperCalcs = ref<{ snapPositions: number[]; maxPos: number }>({
   snapPositions: [0],
@@ -131,6 +161,8 @@ const preCalc = () => {
   if (props.mode === "fixed" && props.slideWidth !== undefined) {
     const stride = props.slideWidth + props.gap;
     displaySlides.value.forEach((entry, visualIdx) => {
+      // duplicate orders (loop buffer) keep the first/leftmost occurrence
+      if (op[entry.order] !== undefined) return;
       const visualPos = Math.round(visualIdx * stride);
       const snap = snaps.reduce((closest, p) =>
         Math.abs(p - visualPos) < Math.abs(closest - visualPos) ? p : closest,
@@ -139,6 +171,8 @@ const preCalc = () => {
     });
   } else {
     displaySlides.value.forEach((entry, visualIdx) => {
+      // duplicate orders (loop buffer) keep the first/leftmost occurrence
+      if (op[entry.order] !== undefined) return;
       const snapIdx = Math.min(
         Math.floor(visualIdx / props.slidesPerSwipe),
         snaps.length - 1,
@@ -152,9 +186,6 @@ const preCalc = () => {
 const startDragging = (e: MouseEvent | TouchEvent) => {
   isDragging.value = true;
   lastMouseX = getClientX(e);
-  dragStartIndex = swiperCalcs.value.snapPositions.findIndex(
-    (p) => p === xPos.value,
-  );
 
   if (e instanceof MouseEvent) {
     document.addEventListener("mousemove", handleDrag);
@@ -253,8 +284,12 @@ const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
 });
 
 onMounted(async () => {
-  initLoop();
+  await nextTick();
+  // Wait for real slide sizes before setting up the loop (avoids the buffer
+  // being tripped by not-yet-loaded content), then init exactly once.
+  await whenMeasurable();
 
+  initLoop();
   await nextTick();
   preCalc();
 

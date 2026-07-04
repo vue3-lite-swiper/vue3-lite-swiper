@@ -1,6 +1,7 @@
 import { ref, type Ref } from "vue";
 
 export interface SlideEntry<T> {
+  id: number;
   order: number;
   item: T;
 }
@@ -12,21 +13,31 @@ interface UseLoopOptions<T> {
   slideWidth: () => number | undefined;
   gap: () => number;
   swiperRef: Readonly<Ref<HTMLElement | null>>;
-  slidesRef: Readonly<Ref<HTMLElement[] | null>>;
+  stripRef: Readonly<Ref<HTMLElement | null>>;
 }
 
 export function useLoop<T>(opts: UseLoopOptions<T>) {
+  // unique, rotation-stable key per rendered slide; `order` carries the
+  // original index for pagination and may repeat across loop-buffer copies.
+  let uid = 0;
   const wrapSlides = (items: T[], offset = 0): SlideEntry<T>[] =>
-    items.map((item, i) => ({ order: offset + i, item }));
+    items.map((item, i) => ({ id: uid++, order: offset + i, item }));
 
   const displaySlides = ref<SlideEntry<T>[]>(wrapSlides(opts.slides));
   const canLoop = ref(false);
+
+  // Slides in DOM (display) order. Unlike a template-ref array, the strip's
+  // children are guaranteed to render in displaySlides order.
+  const slideEls = (): HTMLElement[] =>
+    opts.stripRef.value
+      ? (Array.from(opts.stripRef.value.children) as HTMLElement[])
+      : [];
 
   const firstSlideStride = (): number => {
     if (opts.mode() === "fixed") {
       return (opts.slideWidth() ?? 0) + opts.gap();
     }
-    const slide = opts.slidesRef.value?.at(0);
+    const slide = slideEls().at(0);
     if (!slide) return opts.gap();
     return slide.getBoundingClientRect().width + opts.gap();
   };
@@ -35,7 +46,7 @@ export function useLoop<T>(opts: UseLoopOptions<T>) {
     if (opts.mode() === "fixed") {
       return (opts.slideWidth() ?? 0) + opts.gap();
     }
-    const slide = opts.slidesRef.value?.at(-1);
+    const slide = slideEls().at(-1);
     if (!slide) return opts.gap();
     return slide.getBoundingClientRect().width + opts.gap();
   };
@@ -65,7 +76,7 @@ export function useLoop<T>(opts: UseLoopOptions<T>) {
       return Math.floor(swiperWidth / firstSlideStride());
     }
 
-    const slides = opts.slidesRef.value ?? [];
+    const slides = slideEls();
     let acc = 0;
     let count = 0;
     for (const s of slides) {

@@ -58,9 +58,9 @@ export function getSnapPositions(
   slidesPerSwipe: number,
   currentXPos: number,
 ) {
-  const { slidesRef, stripRef, swiperRef } = swiperRefs;
+  const { stripRef, swiperRef } = swiperRefs;
 
-  if (!slidesRef.value || !stripRef.value || !swiperRef.value) {
+  if (!stripRef.value || !swiperRef.value) {
     return { snapPositions: [0], maxPos: 0 };
   }
 
@@ -78,7 +78,11 @@ export function getSnapPositions(
   // xPos = 0. swiperRef.left is stable; strip.left shifts with translation.
   const swiperLeft = swiperViewRect.left + paddingLeft;
 
-  const slideScrollOffsets = slidesRef.value.map((slide) => {
+  // Measure slides in DOM order (stripRef children). Vue does NOT guarantee the
+  // template-ref array (slidesRef) preserves source order — keyed re-renders can
+  // reorder it — whereas the strip's children always render in displaySlides order.
+  const slideEls = Array.from(stripRef.value.children) as HTMLElement[];
+  const slideScrollOffsets = slideEls.map((slide) => {
     const slideRect = slide.getBoundingClientRect();
     // slideRect.left - swiperLeft = visual offset from the content-box edge
     // + currentXPos corrects for current translation
