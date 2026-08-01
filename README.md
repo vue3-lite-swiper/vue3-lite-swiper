@@ -76,10 +76,10 @@ const slides = [
       <button class="btn" @click="swiper?.previous()">← Prev</button>
       <div class="dots">
         <button
-          v-for="(_, i) in swiper?.pagination.total"
+          v-for="(_, i) in swiper?.total"
           class="dot"
           :key="i"
-          :class="{ active: swiper?.pagination.current === i }"
+          :class="{ active: swiper?.current === i }"
           @click="swiper?.goToIndex(i)"
         />
       </div>
@@ -162,15 +162,17 @@ const slides = [
 
 The `<Swiper>` component is generic — the type parameter `T` is inferred from the `:slides` prop, giving you fully typed slot props with no casting.
 
-| Prop             | Type                | Default   | Description                                                                         |
-| ---------------- | ------------------- | --------- | ----------------------------------------------------------------------------------- |
-| `slides`         | `T[]`               | —         | **Required.** The data array. Each element is passed as `item` in the default slot. |
-| `mode`           | `"fixed" \| "auto"` | `"fixed"` | How slide widths and snap positions are resolved (see below).                       |
-| `slideWidth`     | `number`            | —         | Slide width in pixels. **Required when `mode="fixed"`.**                            |
-| `gap`            | `number`            | `20`      | Horizontal gap between slides, in pixels.                                           |
-| `slidesPerSwipe` | `number`            | `1`       | Slides to advance per navigation step.                                              |
-| `loop`           | `boolean`           | `false`   | Enable seamless infinite looping.                                                   |
-| `autoPlay`       | `boolean`           | `false`   | Advance automatically at a fixed interval.                                          |
+| Prop               | Type                | Default   | Description                                                                         |
+| ------------------ | ------------------- | --------- | ----------------------------------------------------------------------------------- |
+| `slides`           | `T[]`               | —         | **Required.** The data array. Each element is passed as `item` in the default slot. |
+| `mode`             | `"fixed" \| "auto"` | `"fixed"` | How slide widths and snap positions are resolved (see below).                       |
+| `slideWidth`       | `number`            | —         | Slide width in pixels. **Required when `mode="fixed"`.**                            |
+| `gap`              | `number`            | `20`      | Horizontal gap between slides, in pixels.                                           |
+| `slidesPerSwipe`   | `number`            | `1`       | Slides to advance per navigation step.                                              |
+| `loop`             | `boolean`           | `false`   | Enable seamless infinite looping.                                                   |
+| `autoPlay`         | `boolean`           | `false`   | Advance automatically at a fixed interval.                                          |
+| `autoPlayInterval` | `number`            | `3000`    | Milliseconds between autoplay advances.                                             |
+| `pauseOnHover`     | `boolean`           | `true`    | Pause autoplay while the pointer is over the swiper.                                |
 
 ### `mode`
 
@@ -183,21 +185,23 @@ The `mode` prop controls how the swiper figures out each slide's width and where
 
 ### `default`
 
-Renders a single slide. It receives the typed slide data and its render index.
+Renders a single slide. It receives the typed slide data and that item's original index.
 
 ```vue
 <Swiper :slides="items">
   <template #default="{ item, index }">
     <!-- item is typed as T -->
-    <!-- index is the render position (may differ from the original when loop is active) -->
+    <!-- index is the item's original index in items -->
   </template>
 </Swiper>
 ```
 
-| Slot prop | Type     | Description                                                                                                                         |
-| --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `item`    | `T`      | The slide's data, typed from your array.                                                                                            |
-| `index`   | `number` | Render position. When `loop` is enabled the component rotates the array internally, so this may not match the original array index. |
+| Slot prop | Type     | Description                                                                                                            |
+| --------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `item`    | `T`      | The slide's data, typed from your array.                                                                               |
+| `index`   | `number` | The item's zero-based index in the original `slides` array. It stays with the item while looping rotates render order. |
+
+> **Slotted content is not pointer-interactive** — The component disables pointer events inside slides so dragging works reliably. Put links, buttons, and other interactive controls outside the swiper.
 
 ## Component Ref
 
@@ -220,7 +224,7 @@ const swiper = useTemplateRef("swiper");
 | ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `next()`           | Advance to the next snap position. When `loop` is enabled and at the boundary, the strip rotates seamlessly. |
 | `previous()`       | Move to the previous snap position. When `loop` is enabled and at the start, the strip rotates backward.     |
-| `goToIndex(index)` | Jump directly to a snap position by zero-based index. Throws if out of bounds.                               |
+| `goToIndex(index)` | Move to the snap mapped to a zero-based original slide index. Invalid indices are ignored.                   |
 
 ```ts
 swiper.value?.next();
@@ -228,21 +232,21 @@ swiper.value?.previous();
 swiper.value?.goToIndex(0); // first slide
 ```
 
-> **Snap positions vs slides** — `goToIndex` operates on **snap positions**, not the raw slides array. With `slidesPerSwipe: 2` and 8 slides, there are 4 snap positions (indices 0–3).
+> **Slide indices** — `goToIndex` and slot `index` use zero-based indices from the original `slides` array. `current` is a navigation index: with the default `slidesPerSwipe="1"`, it matches the active original slide; with larger values, it reflects the internal snap-array position and may not identify the leading visible slide.
 
 ### `current` / `total`
 
 Two reactive properties available on the component instance. Use them to build custom navigation UI.
 
 ```ts
-swiper.value?.current; // number — active snap index
-swiper.value?.total; // number — total snap positions
+swiper.value?.current; // number — current navigation index
+swiper.value?.total; // number — number of addressable slides
 ```
 
-| Property  | Type     | Description                                   |
-| --------- | -------- | --------------------------------------------- |
-| `current` | `number` | Zero-based index of the active snap position. |
-| `total`   | `number` | Total number of snap positions.               |
+| Property  | Type     | Description                                                                                   |
+| --------- | -------- | --------------------------------------------------------------------------------------------- |
+| `current` | `number` | Current navigation index. With `slidesPerSwipe="1"`, this is the active original slide index. |
+| `total`   | `number` | Number of addressable original slides.                                                        |
 
 ## Examples
 
@@ -250,7 +254,7 @@ Live demos for every mode are in the [Examples](https://vue3-lite-swiper.vuedoo.
 
 ### [Fixed Mode](https://vue3-lite-swiper.vuedoo.org/examples/fixed)
 
-Use `mode="fixed"` (the default) when all slides share the same width. Snap positions are computed mathematically — no DOM measurement needed. Set `slides-per-swipe` to jump several slides per step (with 8 slides and `slides-per-swipe="3"`, the snap positions are `[0, 3, 6]`).
+Use `mode="fixed"` (the default) when all slides share the same width. Snap positions are computed mathematically — no DOM measurement needed. Set `slides-per-swipe` to jump several slide strides per step; an end-aligned position is included when needed.
 
 ```vue
 <Swiper mode="fixed" :slides="slides" :slide-width="220" :gap="16" />
@@ -266,7 +270,7 @@ Use `mode="auto"` when slides have **different widths**. The component measures 
 
 ### [Infinite Loop](https://vue3-lite-swiper.vuedoo.org/examples/loop)
 
-Enable `loop` to scroll endlessly in both directions. Vue3 Lite Swiper uses **array rotation** — DOM items are moved from one end of the strip to the other — so there is no clone flicker or position jump. The loop requires at least one more slide than fits in the viewport; otherwise it is silently ignored. Compatible with both `fixed` and `auto` modes.
+Enable `loop` to scroll endlessly in both directions. Vue3 Lite Swiper uses **array rotation** — DOM items are moved from one end of the strip to the other — so there is no clone flicker or position jump. Looping is active when at least as many slides are supplied as fit in the viewport; otherwise it is silently ignored. Compatible with both `fixed` and `auto` modes.
 
 ```vue
 <Swiper loop :slides="slides" :slide-width="220" :gap="16" />
