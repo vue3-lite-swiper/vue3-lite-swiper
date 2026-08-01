@@ -34,13 +34,26 @@ const slides = [
 </script>
 
 <template>
-  <div class="demo">
-    <Swiper
-      ref="swiper"
-      mode="fixed"
-      :slides="slides"
-      :slide-width="220"
-      :gap="16"
+  <Swiper
+    ref="swiper"
+    :slides="slides"
+    mode="fixed"
+    :slide-width="220"
+    :gap="16"
+  >
+    <template #default="{ item }">
+      <div class="slide" :style="{ background: item.color }">
+        {{ item.label }}
+      </div>
+    </template>
+  </Swiper>
+
+  <div class="controls">
+    <button @click="swiper?.previous()">← Prev</button>
+    <button
+      v-for="(_, i) in swiper?.total"
+      :key="i"
+      @click="swiper?.goToIndex(i)"
     >
       <template #default="{ item }">
         <div class="slide" :style="{ background: item.color }">

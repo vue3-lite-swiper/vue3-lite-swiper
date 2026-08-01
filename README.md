@@ -230,19 +230,19 @@ swiper.value?.goToIndex(0); // first slide
 
 > **Snap positions vs slides** — `goToIndex` operates on **snap positions**, not the raw slides array. With `slidesPerSwipe: 2` and 8 slides, there are 4 snap positions (indices 0–3).
 
-### `pagination`
+### `current` / `total`
 
-A reactive computed property available on the component instance. Use it to build custom navigation UI.
+Two reactive properties available on the component instance. Use them to build custom navigation UI.
 
 ```ts
-swiper.value?.pagination;
-// { current: number, total: number }
+swiper.value?.current; // number — active snap index
+swiper.value?.total; // number — total snap positions
 ```
 
-| Property  | Type     | Description                                                        |
-| --------- | -------- | ------------------------------------------------------------------ |
-| `current` | `number` | Zero-based index of the active snap position. `-1` if not aligned. |
-| `total`   | `number` | Total number of snap positions.                                    |
+| Property  | Type     | Description                                   |
+| --------- | -------- | --------------------------------------------- |
+| `current` | `number` | Zero-based index of the active snap position. |
+| `total`   | `number` | Total number of snap positions.               |
 
 ## Examples
 

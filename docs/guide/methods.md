@@ -50,19 +50,19 @@ swiper.value?.goToIndex(3); // fourth snap position
 `goToIndex` operates on **snap positions**, not the raw slides array. With `slidesPerSwipe: 2` and 8 slides, there are 4 snap positions (indices 0–3).
 :::
 
-## `pagination`
+## `current` / `total`
 
-A reactive computed property available on the component instance. Use it to build custom navigation UI.
+Two reactive properties available on the component instance. Use them to build custom navigation UI.
 
 ```ts
-swiper.value?.pagination;
-// { current: number, total: number }
+swiper.value?.current; // number — active snap index
+swiper.value?.total; // number — total snap positions
 ```
 
-| Property  | Type     | Description                                                        |
-| --------- | -------- | ------------------------------------------------------------------ |
-| `current` | `number` | Zero-based index of the active snap position. `-1` if not aligned. |
-| `total`   | `number` | Total number of snap positions.                                    |
+| Property  | Type     | Description                                    |
+| --------- | -------- | ---------------------------------------------- |
+| `current` | `number` | Zero-based index of the active snap position.  |
+| `total`   | `number` | Total number of snap positions.                |
 
 ## Examples
 
@@ -78,9 +78,9 @@ swiper.value?.pagination;
 
   <div class="dots">
     <button
-      v-for="(_, i) in swiper?.pagination.total"
+      v-for="(_, i) in swiper?.total"
       :key="i"
-      :class="{ active: swiper?.pagination.current === i }"
+      :class="{ active: swiper?.current === i }"
       @click="swiper?.goToIndex(i)"
     />
   </div>
@@ -92,7 +92,7 @@ swiper.value?.pagination;
 ```vue
 <template>
   <button
-    :disabled="swiper?.pagination.current === 0"
+    :disabled="swiper?.current === 0"
     @click="swiper?.previous()"
   >
     Prev
@@ -100,7 +100,7 @@ swiper.value?.pagination;
 
   <button
     :disabled="
-      swiper?.pagination.current === (swiper?.pagination.total ?? 1) - 1
+      swiper?.current === (swiper?.total ?? 1) - 1
     "
     @click="swiper?.next()"
   >

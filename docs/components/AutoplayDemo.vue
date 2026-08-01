@@ -25,10 +25,10 @@
         </button>
         <div class="dots">
           <button
-            v-for="(_, i) in swiper?.pagination.total"
+            v-for="(_, i) in swiper?.total"
             :key="i"
             class="dot"
-            :class="{ active: swiper?.pagination.current === i }"
+            :class="{ active: swiper?.current === i }"
             @click="swiper?.goToIndex(i)"
           />
         </div>

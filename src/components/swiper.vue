@@ -27,11 +27,12 @@
     >
       <!-- Slides -->
       <div
-        v-for="(item, index) in displaySlides"
+        v-for="entry in displaySlides"
+        :key="entry.id"
         class="vls-slide"
         ref="slides"
       >
-        <slot :item :index />
+        <slot :item="entry.item" :index="entry.order" />
       </div>
     </div>
   </div>
@@ -90,10 +91,42 @@ const {
   slideWidth: () => props.slideWidth,
   gap: () => props.gap,
   swiperRef,
-  slidesRef,
+  stripRef,
 });
 
 let lastMouseX = 0;
+let resizeObserver: ResizeObserver | null = null;
+
+// In "auto" mode the loop buffer decision depends on measured slide widths.
+// Until content (e.g. images) has laid out, those measure as 0 and wrongly
+// trip the buffer branch, so we defer finalizing the loop until sizes are real.
+const slidesMeasurable = () => {
+  if (props.mode === "fixed") return true;
+  const slides = slidesRef.value;
+  return (
+    !!slides &&
+    slides.length > 0 &&
+    slides.every((s) => s.getBoundingClientRect().width > 0)
+  );
+};
+
+// Resolves once slides have a measurable width, or after a fallback delay so a
+// slow/broken image can never stall setup indefinitely.
+const whenMeasurable = () =>
+  new Promise<void>((resolve) => {
+    if (slidesMeasurable()) return resolve();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      ro.disconnect();
+      clearTimeout(timer);
+      resolve();
+    };
+    const ro = new ResizeObserver(() => slidesMeasurable() && finish());
+    if (stripRef.value) ro.observe(stripRef.value);
+    const timer = setTimeout(finish, 1000);
+  });
 
 const swiperCalcs = ref<{ snapPositions: number[]; maxPos: number }>({
   snapPositions: [0],
@@ -108,17 +141,46 @@ const preCalc = () => {
       return;
     }
     swiperCalcs.value = getFixedSnapPositions(
-      { swiperRef, stripRef },
+      { swiperRef },
       displaySlides.value.length,
       props.slideWidth,
       props.slidesPerSwipe,
+      props.gap,
     );
-    return;
+  } else {
+    swiperCalcs.value = getSnapPositions(
+      { swiperRef, slidesRef, stripRef },
+      props.slidesPerSwipe,
+      xPos.value,
+    );
   }
-  swiperCalcs.value = getSnapPositions(
-    { swiperRef, slidesRef, stripRef },
-    props.slidesPerSwipe,
-  );
+
+  const snaps = swiperCalcs.value.snapPositions;
+  const op: Record<number, number> = {};
+  if (snaps.length === 0) return;
+  if (props.mode === "fixed" && props.slideWidth !== undefined) {
+    const stride = props.slideWidth + props.gap;
+    displaySlides.value.forEach((entry, visualIdx) => {
+      // duplicate orders (loop buffer) keep the first/leftmost occurrence
+      if (op[entry.order] !== undefined) return;
+      const visualPos = Math.round(visualIdx * stride);
+      const snap = snaps.reduce((closest, p) =>
+        Math.abs(p - visualPos) < Math.abs(closest - visualPos) ? p : closest,
+      );
+      op[entry.order] = snap;
+    });
+  } else {
+    displaySlides.value.forEach((entry, visualIdx) => {
+      // duplicate orders (loop buffer) keep the first/leftmost occurrence
+      if (op[entry.order] !== undefined) return;
+      const snapIdx = Math.min(
+        Math.floor(visualIdx / props.slidesPerSwipe),
+        snaps.length - 1,
+      );
+      op[entry.order] = snaps[snapIdx];
+    });
+  }
+  orderPositions.value = op;
 };
 
 const startDragging = (e: MouseEvent | TouchEvent) => {
@@ -178,6 +240,12 @@ const stopDragging = () => {
 
   xPos.value = getClosestSnapPosition(xPos.value, maxPos, snapPositions);
 
+  const endIndex = snapPositions.findIndex((p) => p === xPos.value);
+  if (endIndex !== -1) {
+    const entry = displaySlides.value[endIndex];
+    if (entry) current.value = entry.order;
+  }
+
   isDragging.value = false;
   removeAllEventListeners();
 };
@@ -190,9 +258,13 @@ const removeAllEventListeners = () => {
   document.removeEventListener("touchcancel", stopDragging);
 };
 
-const { pagination, next, previous, goToIndex } = usePagination({
+const orderPositions = ref<Record<number, number>>({});
+
+const { current, total, next, previous, goToIndex } = usePagination({
   xPos,
   swiperCalcs,
+  orderPositions,
+  displaySlides,
   canLoop,
   isDragging,
   stripRef,
@@ -203,7 +275,8 @@ const { pagination, next, previous, goToIndex } = usePagination({
 
 const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
   canLoop,
-  pagination,
+  current,
+  total,
   next,
   goToIndex,
   enabled: () => !!props.autoPlay,
@@ -211,20 +284,32 @@ const { start: startAutoPlay, stop: stopAutoPlay } = useAutoPlay({
 });
 
 onMounted(async () => {
-  initLoop();
+  await nextTick();
+  // Wait for real slide sizes before setting up the loop (avoids the buffer
+  // being tripped by not-yet-loaded content), then init exactly once.
+  await whenMeasurable();
 
+  initLoop();
   await nextTick();
   preCalc();
+
+  resizeObserver = new ResizeObserver(() => {
+    if (isDragging.value) return;
+    preCalc();
+  });
+  if (stripRef.value) resizeObserver.observe(stripRef.value);
 
   if (props.autoPlay) startAutoPlay();
 });
 
 onBeforeUnmount(() => {
   stopAutoPlay();
+  resizeObserver?.disconnect();
 });
 
 defineExpose({
-  pagination,
+  current,
+  total,
   next,
   previous,
   goToIndex,
@@ -238,6 +323,8 @@ defineExpose({
 }
 
 .vls-strip {
+  width: max-content;
+  flex-shrink: 0;
   cursor: grab;
   user-select: none;
 }

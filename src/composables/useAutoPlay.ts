@@ -1,14 +1,10 @@
-import {
-  onBeforeUnmount,
-  watch,
-  type ComputedRef,
-  type Ref,
-} from "vue";
+import { onBeforeUnmount, watch, type Ref } from "vue";
 
 interface UseAutoPlayOptions {
   enabled: () => boolean;
   canLoop: Ref<boolean>;
-  pagination: ComputedRef<{ current: number; total: number }>;
+  current: Ref<number>;
+  total: Ref<number>;
   next: () => void;
   goToIndex: (index: number) => void;
   interval?: number;
@@ -19,8 +15,7 @@ export function useAutoPlay(opts: UseAutoPlayOptions) {
   let intervalId: number | undefined;
 
   const tick = () => {
-    const { current, total } = opts.pagination.value;
-    if (!opts.canLoop.value && current === total - 1) {
+    if (!opts.canLoop.value && opts.current.value === opts.total.value - 1) {
       opts.goToIndex(0);
     } else {
       opts.next();

@@ -33,26 +33,21 @@ const slides = [
 </script>
 
 <template>
-  <div class="demo">
-    <Swiper ref="swiper" mode="auto" :slides="slides" :gap="12">
-      <template #default="{ item }">
-        <div
-          class="slide"
-          :style="{ width: item.width + 'px', background: item.color }"
-        >
-          <span>{{ item.label }}</span>
-        </div>
-      </template>
-    </Swiper>
+  <Swiper ref="swiper" :slides="slides" mode="auto" :gap="12">
+    <template #default="{ item }">
+      <div class="slide" :style="{ width: item.width + 'px' }">
+        {{ item.label }}
+      </div>
+    </template>
+  </Swiper>
 
-    <div class="controls">
-      <button class="btn" @click="swiper?.previous()">← Prev</button>
-      <span class="counter">
-        {{ (swiper?.pagination.current ?? 0) + 1 }} /
-        {{ swiper?.pagination.total }}
-      </span>
-      <button class="btn" @click="swiper?.next()">Next →</button>
-    </div>
+  <div class="controls">
+    <button @click="swiper?.previous()">← Prev</button>
+    <span
+      >{{ (swiper?.current ?? 0) + 1 }} /
+      {{ swiper?.total }}</span
+    >
+    <button @click="swiper?.next()">Next →</button>
   </div>
 </template>
 
