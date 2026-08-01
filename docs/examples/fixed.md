@@ -49,32 +49,17 @@ const slides = [
   </Swiper>
 
   <div class="controls">
-    <button @click="swiper?.previous()">← Prev</button>
-    <button
-      v-for="(_, i) in swiper?.total"
-      :key="i"
-      @click="swiper?.goToIndex(i)"
-    >
-      <template #default="{ item }">
-        <div class="slide" :style="{ background: item.color }">
-          <span>{{ item.label }}</span>
-        </div>
-      </template>
-    </Swiper>
-
-    <div class="controls">
-      <button class="btn" @click="swiper?.previous()">← Prev</button>
-      <div class="dots">
-        <button
-          v-for="(_, i) in swiper?.pagination.total"
-          class="dot"
-          :key="i"
-          :class="{ active: swiper?.pagination.current === i }"
-          @click="swiper?.goToIndex(i)"
-        />
-      </div>
-      <button class="btn" @click="swiper?.next()">Next →</button>
+    <button class="btn" @click="swiper?.previous()">← Prev</button>
+    <div class="dots">
+      <button
+        v-for="(_, i) in swiper?.total"
+        :key="i"
+        class="dot"
+        :class="{ active: swiper?.current === i }"
+        @click="swiper?.goToIndex(i)"
+      />
     </div>
+    <button class="btn" @click="swiper?.next()">Next →</button>
   </div>
 </template>
 
@@ -156,7 +141,7 @@ Set `slides-per-swipe` to jump several slides per navigation step:
 <Swiper :slides="slides" :slide-width="220" :gap="16" :slides-per-swipe="3" />
 ```
 
-With 8 slides and `slides-per-swipe="3"`, the snap positions are `[0, 3, 6]`.
+With `slides-per-swipe="3"`, navigation targets every third slide stride and still includes an end-aligned position when needed. The exact final position depends on the viewport width.
 
 ::: tip
 `slide-width` must match the actual rendered width. If your slide has `padding: 0 12px`, account for it or switch to `mode="auto"`.

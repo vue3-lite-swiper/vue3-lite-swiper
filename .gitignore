@@ -32,6 +32,9 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
+#AI
+.pi-subagents/
+
 # Vitest
 __screenshots__/
 compiled.css

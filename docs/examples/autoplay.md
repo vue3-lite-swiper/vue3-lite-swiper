@@ -14,8 +14,7 @@ import AutoplayDemo from '../components/AutoplayDemo.vue'
 
 ```vue
 <script setup lang="ts">
-import { ref } from "vue";
-import { useTemplateRef } from "vue";
+import { ref, useTemplateRef } from "vue";
 import { Swiper } from "vue3-lite-swiper";
 
 const swiper = useTemplateRef("swiper");
@@ -58,10 +57,10 @@ const slides = [
         </button>
         <div class="dots">
           <button
-            v-for="(_, i) in swiper?.pagination.total"
+            v-for="(_, i) in swiper?.total"
             class="dot"
             :key="i"
-            :class="{ active: swiper?.pagination.current === i }"
+            :class="{ active: swiper?.current === i }"
             @click="swiper?.goToIndex(i)"
           />
         </div>
@@ -165,13 +164,26 @@ const slides = [
 
 ## Behaviour
 
-| Condition            | Result                                                  |
-| -------------------- | ------------------------------------------------------- |
-| `loop: true`         | Calls `next()` on each tick — loops indefinitely        |
-| `loop: false`        | Calls `next()` until last slide, then resets to index 0 |
-| `:auto-play="false"` | Stops the interval immediately                          |
-| `:auto-play="true"`  | Starts advancing on the next tick                       |
+| Condition            | Result                                                      |
+| -------------------- | ----------------------------------------------------------- |
+| `loop` is active     | Calls `next()` on each tick and wraps continuously          |
+| `loop` is inactive   | Calls `next()` until the last slide, then resets to index 0 |
+| `:auto-play="false"` | Stops the interval immediately                              |
+| `:auto-play="true"`  | Starts advancing after the configured interval              |
+
+## Configuration
+
+`auto-play-interval` sets the delay between advances in milliseconds (default: `3000`). Autoplay pauses while the pointer is over the swiper by default; set `:pause-on-hover="false"` to keep it running.
+
+```vue
+<Swiper
+  :slides="slides"
+  :auto-play="true"
+  :auto-play-interval="5000"
+  :pause-on-hover="false"
+/>
+```
 
 ::: tip Pair with loop
-Autoplay is most useful combined with `loop`. Without it, the carousel resets to the first slide each time it reaches the end.
+Autoplay is most useful when looping is active. Looping requires at least as many slides as fit in the viewport; otherwise autoplay resets to the first slide at the end.
 :::

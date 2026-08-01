@@ -35,19 +35,19 @@ swiper.value?.previous();
 
 ### `goToIndex(index)`
 
-Jump directly to a snap position by index.
+Move to the snap mapped to an original slide index.
 
 ```ts
 swiper.value?.goToIndex(0); // first slide
-swiper.value?.goToIndex(3); // fourth snap position
+swiper.value?.goToIndex(3); // fourth slide
 ```
 
-| Parameter | Type     | Description                                     |
-| --------- | -------- | ----------------------------------------------- |
-| `index`   | `number` | Zero-based snap index. Throws if out of bounds. |
+| Parameter | Type     | Description                                                   |
+| --------- | -------- | ------------------------------------------------------------- |
+| `index`   | `number` | Zero-based original slide index. Invalid indices are ignored. |
 
-::: info Snap positions vs slides
-`goToIndex` operates on **snap positions**, not the raw slides array. With `slidesPerSwipe: 2` and 8 slides, there are 4 snap positions (indices 0–3).
+::: info Slide indices
+`goToIndex` and slot `index` use zero-based indices from the original `slides` array. `current` is a navigation index: with the default `slidesPerSwipe="1"`, it matches the active original slide; with larger values, it reflects the internal snap-array position and may not identify the leading visible slide.
 :::
 
 ## `current` / `total`
@@ -55,14 +55,14 @@ swiper.value?.goToIndex(3); // fourth snap position
 Two reactive properties available on the component instance. Use them to build custom navigation UI.
 
 ```ts
-swiper.value?.current; // number — active snap index
-swiper.value?.total; // number — total snap positions
+swiper.value?.current; // number — current navigation index
+swiper.value?.total; // number — number of addressable slides
 ```
 
-| Property  | Type     | Description                                    |
-| --------- | -------- | ---------------------------------------------- |
-| `current` | `number` | Zero-based index of the active snap position.  |
-| `total`   | `number` | Total number of snap positions.                |
+| Property  | Type     | Description                                                                                   |
+| --------- | -------- | --------------------------------------------------------------------------------------------- |
+| `current` | `number` | Current navigation index. With `slidesPerSwipe="1"`, this is the active original slide index. |
+| `total`   | `number` | Number of addressable original slides.                                                        |
 
 ## Examples
 
@@ -89,19 +89,16 @@ swiper.value?.total; // number — total snap positions
 
 ### Disabled boundary buttons
 
+This pattern assumes `loop` is disabled and `slides-per-swipe` is left at its default of `1`.
+
 ```vue
 <template>
-  <button
-    :disabled="swiper?.current === 0"
-    @click="swiper?.previous()"
-  >
+  <button :disabled="swiper?.current === 0" @click="swiper?.previous()">
     Prev
   </button>
 
   <button
-    :disabled="
-      swiper?.current === (swiper?.total ?? 1) - 1
-    "
+    :disabled="swiper?.current === (swiper?.total ?? 1) - 1"
     @click="swiper?.next()"
   >
     Next

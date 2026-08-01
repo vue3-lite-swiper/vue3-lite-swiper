@@ -25,15 +25,17 @@ const slides = [
 
 ## Props reference
 
-| Prop             | Type                | Default   | Description                                                                         |
-| ---------------- | ------------------- | --------- | ----------------------------------------------------------------------------------- |
-| `slides`         | `T[]`               | —         | **Required.** The data array. Each element is passed as `item` in the default slot. |
-| `mode`           | `"fixed" \| "auto"` | `"fixed"` | How slide widths and snap positions are resolved. [See below](#mode).               |
-| `slideWidth`     | `number`            | —         | Slide width in pixels. **Required when `mode="fixed"`.**                            |
-| `gap`            | `number`            | `20`      | Horizontal gap between slides, in pixels.                                           |
-| `slidesPerSwipe` | `number`            | `1`       | Slides to advance per navigation step.                                              |
-| `loop`           | `boolean`           | `false`   | Enable seamless infinite looping.                                                   |
-| `autoPlay`       | `boolean`           | `false`   | Advance automatically at a fixed interval.                                          |
+| Prop               | Type                | Default   | Description                                                                         |
+| ------------------ | ------------------- | --------- | ----------------------------------------------------------------------------------- |
+| `slides`           | `T[]`               | —         | **Required.** The data array. Each element is passed as `item` in the default slot. |
+| `mode`             | `"fixed" \| "auto"` | `"fixed"` | How slide widths and snap positions are resolved. [See below](#mode).               |
+| `slideWidth`       | `number`            | —         | Slide width in pixels. **Required when `mode="fixed"`.**                            |
+| `gap`              | `number`            | `20`      | Horizontal gap between slides, in pixels.                                           |
+| `slidesPerSwipe`   | `number`            | `1`       | Slides to advance per navigation step.                                              |
+| `loop`             | `boolean`           | `false`   | Enable seamless infinite looping.                                                   |
+| `autoPlay`         | `boolean`           | `false`   | Advance automatically at a fixed interval.                                          |
+| `autoPlayInterval` | `number`            | `3000`    | Milliseconds between autoplay advances.                                             |
+| `pauseOnHover`     | `boolean`           | `true`    | Pause autoplay while the pointer is over the swiper.                                |
 
 ## `mode`
 
@@ -59,21 +61,25 @@ Omitting `slideWidth` while `mode="fixed"` logs an error and disables all snap n
 
 ### `default`
 
-Renders a single slide. It receives the typed slide data and its render index.
+Renders a single slide. It receives the typed slide data and that item's original array index.
 
 ```vue
 <Swiper :slides="items">
   <template #default="{ item, index }">
     <!-- item is typed as T -->
-    <!-- index is the render position (may differ from the original when loop is active) -->
+    <!-- index is the item's original index in items -->
   </template>
 </Swiper>
 ```
 
-| Slot prop | Type     | Description                                                                                                                         |
-| --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `item`    | `T`      | The slide's data, typed from your array.                                                                                            |
-| `index`   | `number` | Render position. When `loop` is enabled the component rotates the array internally, so this may not match the original array index. |
+| Slot prop | Type     | Description                                                                                                            |
+| --------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `item`    | `T`      | The slide's data, typed from your array.                                                                               |
+| `index`   | `number` | The item's zero-based index in the original `slides` array. It stays with the item while looping rotates render order. |
+
+::: warning Slotted content is not pointer-interactive
+The component disables pointer events inside slides so dragging works reliably. Put links, buttons, and other interactive controls outside the swiper.
+:::
 
 ::: tip Need an imperative handle?
 Pair these props with the [methods API](/guide/methods) to build pagination dots, prev/next buttons, or autoplay controls.

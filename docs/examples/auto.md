@@ -35,19 +35,22 @@ const slides = [
 <template>
   <Swiper ref="swiper" :slides="slides" mode="auto" :gap="12">
     <template #default="{ item }">
-      <div class="slide" :style="{ width: item.width + 'px' }">
-        {{ item.label }}
+      <div
+        class="slide"
+        :style="{ width: item.width + 'px', background: item.color }"
+      >
+        <span>{{ item.label }}</span>
       </div>
     </template>
   </Swiper>
 
   <div class="controls">
-    <button @click="swiper?.previous()">← Prev</button>
-    <span
-      >{{ (swiper?.current ?? 0) + 1 }} /
-      {{ swiper?.total }}</span
-    >
-    <button @click="swiper?.next()">Next →</button>
+    <button class="btn" @click="swiper?.previous()">← Prev</button>
+    <span class="counter">
+      {{ (swiper?.current ?? 0) + 1 }} /
+      {{ swiper?.total }}
+    </span>
+    <button class="btn" @click="swiper?.next()">Next →</button>
   </div>
 </template>
 

@@ -121,7 +121,7 @@ Backward navigation mirrors this with `rotateBackward()`.
 
 ## Minimum slides
 
-The loop requires at least **one more slide than fits in the viewport**. If the slide count is too low, `loop` is silently ignored and the swiper behaves as non-looping.
+Looping is active when the slide count is at least the number of slides that fit in the viewport. With fewer slides, `loop` is silently ignored and the swiper behaves as non-looping.
 
 ::: tip Works with both modes
 `loop` is compatible with both `mode="fixed"` and `mode="auto"`. In auto mode the rotation stride is measured from the DOM at rotation time.
