@@ -41,6 +41,7 @@ export default defineConfig({
         items: [
           { text: "Props", link: "/guide/props" },
           { text: "Component Ref", link: "/guide/methods" },
+          { text: "Accessibility", link: "/guide/accessibility" },
         ],
       },
       {

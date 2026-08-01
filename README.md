@@ -248,6 +248,10 @@ swiper.value?.total; // number — number of addressable slides
 | `current` | `number` | Current navigation index. With `slidesPerSwipe="1"`, this is the active original slide index. |
 | `total`   | `number` | Number of addressable original slides.                                                        |
 
+## Accessibility
+
+Provide external native buttons for keyboard navigation and use descriptive image `alt` text. See the [accessibility guide](https://vue3-lite-swiper.vuedoo.org/guide/accessibility) for accessible controls, live announcements, pagination dots, and current limitations.
+
 ## Examples
 
 Live demos for every mode are in the [Examples](https://vue3-lite-swiper.vuedoo.org/examples/fixed) section of the docs.
