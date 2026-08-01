@@ -50,6 +50,7 @@ export default defineConfig({
           { text: "Auto Mode", link: "/examples/auto" },
           { text: "Infinite Loop", link: "/examples/loop" },
           { text: "Auto Play", link: "/examples/autoplay" },
+          { text: "Image Gallery", link: "/examples/images" },
         ],
       },
     ],

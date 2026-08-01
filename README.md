@@ -290,6 +290,18 @@ Set `:auto-play="true"` to advance slides automatically. Toggle it reactively to
 />
 ```
 
+### [Image Gallery](https://vue3-lite-swiper.vuedoo.org/examples/images)
+
+A fixed-width gallery using images from Unsplash, with accessible external navigation controls.
+
+```vue
+<Swiper :slides="photos" :slide-width="300" :gap="16">
+  <template #default="{ item }">
+    <img :src="item.src" :alt="item.alt" />
+  </template>
+</Swiper>
+```
+
 ## License
 
 Licensed under the [MIT license](https://github.com/vue3-lite-swiper/vue3-lite-swiper/blob/main/LICENSE.md).
