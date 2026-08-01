@@ -1,3 +1,5 @@
+![Docs Hero Section](hero.png)
+
 # Vue3 Lite Swiper
 
 **Vue3 Lite Swiper** is a lightweight Vue 3 carousel component with zero runtime dependencies. It handles touch and mouse drag, snap positioning, infinite looping, and autoplay — all without a single external package.
