@@ -159,6 +159,9 @@ const slides = [
 }
 </style>
 ```
+### Demo
+
+<img src='basic_example.gif' width='50%'/>
 
 ## Props
 
@@ -265,6 +268,9 @@ Use `mode="fixed"` (the default) when all slides share the same width. Snap posi
 ```vue
 <Swiper mode="fixed" :slides="slides" :slide-width="220" :gap="16" />
 ```
+### Demo
+
+<img src='fixed_mode.gif' width='50%'/>
 
 ### [Auto Mode](https://vue3-lite-swiper.vuedoo.org/examples/auto)
 
@@ -273,6 +279,9 @@ Use `mode="auto"` when slides have **different widths**. The component measures 
 ```vue
 <Swiper mode="auto" :slides="slides" :gap="12" />
 ```
+### Demo
+
+<img src='auto_mode.gif' width='50%'/>
 
 ### [Infinite Loop](https://vue3-lite-swiper.vuedoo.org/examples/loop)
 
@@ -281,6 +290,9 @@ Enable `loop` to scroll endlessly in both directions. Vue3 Lite Swiper uses **ar
 ```vue
 <Swiper loop :slides="slides" :slide-width="220" :gap="16" />
 ```
+### Demo
+
+<img src='infinite_loop.gif' width='50%'/>
 
 ### [Auto Play](https://vue3-lite-swiper.vuedoo.org/examples/autoplay)
 
@@ -295,6 +307,9 @@ Set `:auto-play="true"` to advance slides automatically. Toggle it reactively to
   :auto-play="playing"
 />
 ```
+### Demo
+
+<img src='auto_play.gif' width='50%'/>
 
 ### [Image Gallery](https://vue3-lite-swiper.vuedoo.org/examples/images)
 
@@ -307,6 +322,9 @@ A fixed-width gallery using images from Unsplash, with accessible external navig
   </template>
 </Swiper>
 ```
+### Demo
+
+<img src='image_gallery.gif' width='50%'/>
 
 ## License
 
