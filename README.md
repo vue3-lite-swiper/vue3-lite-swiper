@@ -48,25 +48,114 @@ const slides = [
   { label: "Slide 1", color: "#60a5fa" },
   { label: "Slide 2", color: "#34d399" },
   { label: "Slide 3", color: "#a78bfa" },
+  { label: "Slide 4", color: "#f87171" },
+  { label: "Slide 5", color: "#fbbf24" },
+  { label: "Slide 6", color: "#e879f9" },
+  { label: "Slide 7", color: "#2dd4bf" },
+  { label: "Slide 8", color: "#fb923c" },
 ];
 </script>
 
 <template>
-  <Swiper
-    ref="swiper"
-    mode="fixed"
-    :slides="slides"
-    :slide-width="220"
-    :gap="16"
-  >
-    <template #default="{ item }">
-      <div :style="{ background: item.color }">{{ item.label }}</div>
-    </template>
-  </Swiper>
+  <div class="demo">
+    <Swiper
+      ref="swiper"
+      mode="fixed"
+      :slides="slides"
+      :slide-width="220"
+      :gap="16"
+    >
+      <template #default="{ item }">
+        <div class="slide" :style="{ background: item.color }">
+          <span>{{ item.label }}</span>
+        </div>
+      </template>
+    </Swiper>
 
-  <button @click="swiper?.previous()">Prev</button>
-  <button @click="swiper?.next()">Next</button>
+    <div class="controls">
+      <button class="btn" @click="swiper?.previous()">← Prev</button>
+      <div class="dots">
+        <button
+          v-for="(_, i) in swiper?.pagination.total"
+          class="dot"
+          :key="i"
+          :class="{ active: swiper?.pagination.current === i }"
+          @click="swiper?.goToIndex(i)"
+        />
+      </div>
+      <button class="btn" @click="swiper?.next()">Next →</button>
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.demo {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--vp-c-bg-soft);
+}
+
+.slide {
+  width: 220px;
+  height: 140px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  user-select: none;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+}
+
+.btn:hover {
+  background: var(--vp-c-brand-soft);
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--vp-c-divider);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s;
+}
+
+.dot.active {
+  background: var(--vp-c-brand-1);
+}
+
+.flex {
+  display: flex;
+}
+</style>
 ```
 
 ## Props
@@ -164,7 +253,7 @@ Live demos for every mode are in the [Examples](https://vue3-lite-swiper.vuedoo.
 Use `mode="fixed"` (the default) when all slides share the same width. Snap positions are computed mathematically — no DOM measurement needed. Set `slides-per-swipe` to jump several slides per step (with 8 slides and `slides-per-swipe="3"`, the snap positions are `[0, 3, 6]`).
 
 ```vue
-<Swiper :slides="slides" mode="fixed" :slide-width="220" :gap="16" />
+<Swiper mode="fixed" :slides="slides" :slide-width="220" :gap="16" />
 ```
 
 ### [Auto Mode](https://vue3-lite-swiper.vuedoo.org/examples/auto)
@@ -172,7 +261,7 @@ Use `mode="fixed"` (the default) when all slides share the same width. Snap posi
 Use `mode="auto"` when slides have **different widths**. The component measures each slide after mount using `getBoundingClientRect()` and builds snap positions from those measurements. Omit `slide-width` and size your slides with CSS.
 
 ```vue
-<Swiper :slides="slides" mode="auto" :gap="12" />
+<Swiper mode="auto" :slides="slides" :gap="12" />
 ```
 
 ### [Infinite Loop](https://vue3-lite-swiper.vuedoo.org/examples/loop)
@@ -180,7 +269,7 @@ Use `mode="auto"` when slides have **different widths**. The component measures 
 Enable `loop` to scroll endlessly in both directions. Vue3 Lite Swiper uses **array rotation** — DOM items are moved from one end of the strip to the other — so there is no clone flicker or position jump. The loop requires at least one more slide than fits in the viewport; otherwise it is silently ignored. Compatible with both `fixed` and `auto` modes.
 
 ```vue
-<Swiper :slides="slides" :slide-width="220" :gap="16" loop />
+<Swiper loop :slides="slides" :slide-width="220" :gap="16" />
 ```
 
 ### [Auto Play](https://vue3-lite-swiper.vuedoo.org/examples/autoplay)
@@ -189,11 +278,11 @@ Set `:auto-play="true"` to advance slides automatically. Toggle it reactively to
 
 ```vue
 <Swiper
+  loop
   :slides="slides"
   :slide-width="220"
   :gap="16"
   :auto-play="playing"
-  loop
 />
 ```
 

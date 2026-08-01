@@ -19,6 +19,8 @@ Add the `loop` prop. Everything else works the same.
 import { useTemplateRef } from "vue";
 import { Swiper } from "vue3-lite-swiper";
 
+const swiper = useTemplateRef("swiper");
+
 const slides = [
   { label: "Slide A", color: "#60a5fa" },
   { label: "Slide B", color: "#34d399" },
@@ -27,24 +29,83 @@ const slides = [
   { label: "Slide E", color: "#fbbf24" },
   { label: "Slide F", color: "#e879f9" },
 ];
-
-const swiper = useTemplateRef("swiper");
 </script>
 
 <template>
-  <Swiper ref="swiper" :slides="slides" :slide-width="220" :gap="16" loop>
-    <template #default="{ item }">
-      <div class="slide" :style="{ background: item.color }">
-        {{ item.label }}
-      </div>
-    </template>
-  </Swiper>
+  <div class="demo">
+    <Swiper
+      ref="swiper"
+      mode="fixed"
+      loop
+      :slides="slides"
+      :slide-width="220"
+      :gap="16"
+    >
+      <template #default="{ item }">
+        <div class="slide" :style="{ background: item.color }">
+          <span>{{ item.label }}</span>
+        </div>
+      </template>
+    </Swiper>
 
-  <div class="controls">
-    <button @click="swiper?.previous()">← Prev</button>
-    <button @click="swiper?.next()">Next →</button>
+    <div class="controls">
+      <button class="btn" @click="swiper?.previous()">← Prev</button>
+      <span class="hint">Loops infinitely in both directions</span>
+      <button class="btn" @click="swiper?.next()">Next →</button>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.demo {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 24px;
+  background: var(--vp-c-bg-soft);
+}
+
+.slide {
+  width: 220px;
+  height: 140px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  user-select: none;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s;
+}
+
+.btn:hover {
+  background: var(--vp-c-brand-soft);
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--vp-c-text-3);
+  font-style: italic;
+}
+</style>
 ```
 
 ## How it works
